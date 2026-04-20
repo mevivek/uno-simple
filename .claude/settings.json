@@ -1,0 +1,50 @@
+{
+  "permissions": {
+    "allow": [
+      "Write",
+      "Edit",
+      "Bash(./gradlew *)",
+      "Bash(gradlew *)",
+      "Bash(gradlew.bat *)",
+      "Bash(./gradlew.bat *)",
+      "Bash(java -version)",
+      "Bash(java --version)",
+      "Bash(javac -version)",
+      "Bash(kotlin -version)",
+      "Bash(kotlinc -version)",
+      "Bash(adb devices)",
+      "Bash(adb version)",
+      "Bash(adb logcat *)",
+      "Bash(adb shell *)",
+      "Bash(adb install *)",
+      "Bash(adb uninstall *)",
+      "Bash(adb push *)",
+      "Bash(adb pull *)",
+      "Bash(adb start-server)",
+      "Bash(adb kill-server)",
+      "Bash(emulator *)",
+      "Bash(git init)",
+      "Bash(git init *)",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(git diff *)",
+      "Bash(git checkout *)",
+      "Bash(git branch *)",
+      "Bash(git restore *)",
+      "Bash(git stash *)",
+      "Bash(git reset *)",
+      "Bash(git clone *)"
+    ],
+    "deny": [
+      "mcp__a2625483-219b-43dd-92ca-0d6c104e3d83__*",
+      "mcp__6d16447d-671d-4d5a-b3d4-233549611b2b__*",
+      "mcp__2c01664e-4f16-41cd-8b39-3dffc09d1019__*",
+      "mcp__c6e08984-9137-4ada-ae1a-ae073943672e__*",
+      "mcp__ef85ae18-01a4-4475-8d1b-2969af8de9db__*",
+      "mcp__claude_ai_Atlassian__*",
+      "mcp__claude_ai_Couchbase_Development__*",
+      "mcp__claude_ai_BigQuery_Development__*",
+      "mcp__claude_ai_Groundrule_-_TEST__*"
+    ]
+  }
+}

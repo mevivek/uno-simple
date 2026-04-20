@@ -1,0 +1,49 @@
+# Gradle
+.gradle/
+build/
+!gradle/wrapper/gradle-wrapper.jar
+!gradle/wrapper/gradle-wrapper.properties
+
+# Firebase CLI cache
+.firebase/
+
+# Kotlin
+.kotlin/
+
+# IDE
+.idea/
+*.iml
+*.ipr
+*.iws
+.vscode/
+.fleet/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Local config
+local.properties
+*.keystore
+!debug.keystore
+
+# Claude Code user-local overrides (project-tracked settings.json is kept)
+.claude/settings.local.json
+
+# Android
+captures/
+.externalNativeBuild/
+.cxx/
+
+# iOS
+xcuserdata/
+*.xcuserstate
+Pods/
+*.xcworkspace/xcuserdata/
+
+# Node (for wasm dev server)
+kotlin-js-store/
+node_modules/
+
+# Coverage
+coverage/

@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <!-- Viewport: without this, mobile browsers render at a 980px virtual
+         width and scale the whole page down — making the UI look tiny on
+         phones. device-width + initial-scale=1 maps 1 CSS pixel to 1
+         device-independent pixel. viewport-fit=cover handles iOS notches. -->
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <title>UNO Simple</title>
+    <style>
+        html, body { margin: 0; padding: 0; height: 100%; overflow: hidden; background: #0F1B2D; color: #F5F7FA; font-family: system-ui, sans-serif; -webkit-tap-highlight-color: transparent; }
+    </style>
+    <!-- Firebase Web SDK — initialized once on page load. Kotlin/Wasm
+         doesn't get the dev.gitlive KMP Firebase wrappers (no Wasm
+         variant published upstream), so we expose a small uno-db.js glue
+         module below that Kotlin calls via @JsFun externals. -->
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.13.2/firebase-app.js';
+        import { firebaseConfig } from './firebase-config.js';
+        window.firebaseApp = initializeApp(firebaseConfig);
+    </script>
+    <script type="module">
+        import { unoDbSet, unoDbSubscribe, unoDbUnsubscribe } from './uno-db.js';
+        window.unoDbSet = unoDbSet;
+        window.unoDbSubscribe = unoDbSubscribe;
+        window.unoDbUnsubscribe = unoDbUnsubscribe;
+    </script>
+</head>
+<body>
+<script src="composeApp.js"></script>
+</body>
+</html>

@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "79384481367",
+    "project_id": "uno-simple-5757a3",
+    "storage_bucket": "uno-simple-5757a3.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:79384481367:android:f0b8391cb653470b389d12",
+        "android_client_info": {
+          "package_name": "com.vivek.unosimple"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA0lR3usyQpntJj3psM807x6G_1uyMynDI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
