@@ -68,8 +68,12 @@ import com.vivek.unosimple.engine.models.DrawTwoCard
 import com.vivek.unosimple.engine.models.ReverseCard
 import com.vivek.unosimple.engine.models.SkipCard
 import com.vivek.unosimple.engine.models.WildDrawFourCard
+import com.vivek.unosimple.ui.theme.FlashOverlay
 import com.vivek.unosimple.ui.theme.LocalClayTokens
 import com.vivek.unosimple.ui.theme.noiseBackground
+import com.vivek.unosimple.ui.theme.rememberFlashController
+import kotlinx.coroutines.launch
+import androidx.compose.runtime.rememberCoroutineScope
 import kotlinx.coroutines.delay
 import com.vivek.unosimple.ui.TestTags
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -136,6 +140,8 @@ fun GameScreen(
     val flight = remember { CardFlightController() }
 
     val audio = LocalAudio.current
+    val flash = rememberFlashController()
+    val scope = rememberCoroutineScope()
 
     // Watch for opponent plays: whenever the discard size grows and the
     // player who just moved wasn't the human, fire a flight from that
@@ -156,6 +162,22 @@ fun GameScreen(
             val topCard = s.topDiscard
             flight.flyFromOpponent(prevActor, topCard)
             audio.play(SoundEffect.CARD_PLAY)
+        }
+        // Bolt-flash + error beep on ANY Wild+4 landing (the bomb play). A
+        // +2 stack earns a lighter coral tinge; number/skip/reverse get no
+        // screen flash because they happen every turn.
+        if (prevSize != null && size > prevSize) {
+            val top = s.topDiscard
+            when (top) {
+                is WildDrawFourCard -> {
+                    scope.launch { flash.flash(Color.White, peakAlpha = 0.8f, durationMs = 280) }
+                    audio.play(SoundEffect.ERROR)
+                }
+                is DrawTwoCard -> {
+                    scope.launch { flash.flash(Color(0xFFFF5168), peakAlpha = 0.35f, durationMs = 320) }
+                }
+                else -> Unit
+            }
         }
     }
 
@@ -275,6 +297,7 @@ fun GameScreen(
         CelebrationOverlay(visible = s.isRoundOver)
         RoundOverPodium(state = s, onNewRound = { vm.startGame(botCount) })
         CardFlightOverlay(controller = flight)
+        FlashOverlay(controller = flash)
         } // close radial-felt Box
     }
     } // close CompositionLocalProvider

@@ -95,23 +95,28 @@ fun CelebrationOverlay(
 }
 
 private fun buildParticles(rng: Random): List<ConfettiParticle> {
+    // Palette pulls from the arcade theme accents — amber hero + coral + neon
+    // + sky + violet — so the burst reads as "this app's victory moment"
+    // rather than generic rainbow confetti.
     val palette = listOf(
-        Color(0xFFE63946), // red
-        Color(0xFFFFC857), // yellow
-        Color(0xFF38B000), // green
-        Color(0xFF2A9DF4), // blue
-        Color(0xFFFFB627), // gold
-        Color(0xFF52D4E4), // cyan
+        Color(0xFFFFB53B), // amber
+        Color(0xFFE8931F), // amber deep
+        Color(0xFFFF5168), // coral
+        Color(0xFF2EE89B), // neon
+        Color(0xFF49B6FF), // sky
+        Color(0xFFA06BFF), // violet
+        Color(0xFFFFFFFF), // highlight
     )
-    return List(80) {
+    // Denser burst (140 particles vs old 80) — more arcade, less polite.
+    return List(140) {
         ConfettiParticle(
-            startX = rng.nextFloat(),             // 0..1 of canvas width
-            startY = -0.05f,                      // just above the top
-            driftX = (rng.nextFloat() - 0.5f) * 0.4f,
-            size = 8f + rng.nextFloat() * 10f,    // px
+            startX = rng.nextFloat(),
+            startY = -0.05f,
+            driftX = (rng.nextFloat() - 0.5f) * 0.55f,
+            size = 7f + rng.nextFloat() * 14f,
             color = palette[rng.nextInt(palette.size)],
             rotationStart = rng.nextFloat() * (2 * PI).toFloat(),
-            rotationSpeed = (rng.nextFloat() - 0.5f) * 12f,
+            rotationSpeed = (rng.nextFloat() - 0.5f) * 14f,
         )
     }
 }
