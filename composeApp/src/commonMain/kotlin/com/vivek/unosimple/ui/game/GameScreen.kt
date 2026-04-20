@@ -72,6 +72,8 @@ import com.vivek.unosimple.ui.theme.LocalClayTokens
 import kotlinx.coroutines.delay
 import com.vivek.unosimple.ui.TestTags
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.vivek.unosimple.audio.LocalAudio
+import com.vivek.unosimple.audio.SoundEffect
 import com.vivek.unosimple.engine.Rules
 import com.vivek.unosimple.engine.models.Card
 import com.vivek.unosimple.engine.models.CardColor
@@ -132,6 +134,8 @@ fun GameScreen(
     // their played card through the resulting fly-to-pile animation.
     val flight = remember { CardFlightController() }
 
+    val audio = LocalAudio.current
+
     // Watch for opponent plays: whenever the discard size grows and the
     // player who just moved wasn't the human, fire a flight from that
     // opponent's tile to the pile.
@@ -150,7 +154,16 @@ fun GameScreen(
         if (prevSize != null && size > prevSize && prevActor != null && prevActor != humanId) {
             val topCard = s.topDiscard
             flight.flyFromOpponent(prevActor, topCard)
+            audio.play(SoundEffect.CARD_PLAY)
         }
+    }
+
+    // Play the WIN fanfare exactly once when the round flips to over.
+    var lastRoundOver by remember { mutableStateOf(false) }
+    LaunchedEffect(state?.isRoundOver) {
+        val now = state?.isRoundOver == true
+        if (now && !lastRoundOver) audio.play(SoundEffect.WIN)
+        lastRoundOver = now
     }
 
     CompositionLocalProvider(LocalCardFlight provides flight) {
@@ -202,7 +215,10 @@ fun GameScreen(
             TableCenter(
                 state = s,
                 isHumanTurn = s.currentPlayer.id == humanId,
-                onDraw = { vm.drawCard() },
+                onDraw = {
+                    audio.play(SoundEffect.CARD_DEAL)
+                    vm.drawCard()
+                },
             )
 
             // Bottom: UNO button (when applicable) + human's hand
@@ -210,12 +226,16 @@ fun GameScreen(
                 state = s,
                 humanId = humanId,
                 unoDeclared = unoDeclared,
-                onDeclareUno = { unoDeclared = true },
+                onDeclareUno = {
+                    unoDeclared = true
+                    audio.play(SoundEffect.UNO_CALL)
+                },
                 onCardTap = { card ->
                     if (card.isWild) {
                         pendingWild = card
                     } else {
                         flight.flyFromHand(card)
+                        audio.play(SoundEffect.CARD_PLAY)
                         vm.playCard(card, declareUno = unoDeclared)
                         unoDeclared = false // consume the declaration
                     }
@@ -229,6 +249,7 @@ fun GameScreen(
                 onCancel = { pendingWild = null },
                 onPick = { color ->
                     flight.flyFromHand(card)
+                    audio.play(SoundEffect.CARD_PLAY)
                     vm.playCard(card, color, declareUno = unoDeclared)
                     unoDeclared = false
                     pendingWild = null
