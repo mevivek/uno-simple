@@ -307,11 +307,12 @@ private fun CardBackPattern() {
 }
 
 internal fun cardColorToCompose(color: CardColor): Color = when (color) {
-    // Pastel palette matched to the claymorph theme tokens.
-    CardColor.RED -> Color(0xFFFF6B7D)   // coral
-    CardColor.YELLOW -> Color(0xFFFFB547) // marigold
-    CardColor.GREEN -> Color(0xFF5FCF95)  // mint
-    CardColor.BLUE -> Color(0xFF5AAEE8)   // sky
+    // Saturated arcade palette — reads as "game card" on the dark felt
+    // where the old pastel set washed out.
+    CardColor.RED -> Color(0xFFF0394C)
+    CardColor.YELLOW -> Color(0xFFFFB53B)
+    CardColor.GREEN -> Color(0xFF2EE89B)
+    CardColor.BLUE -> Color(0xFF49B6FF)
 }
 
 // Small helpers to shade colors without pulling in a library.
@@ -333,10 +334,10 @@ internal val CARD_WIDTH: Dp = 56.dp
 internal val CARD_HEIGHT: Dp = 84.dp
 private val ICON_SIZE: Dp = 36.dp
 private val CORNER_RADIUS: Dp = 14.dp
-private val CARD_BACK_COLOR: Color = Color(0xFF3E2A52) // plum
-private val WILD_BACKGROUND: Color = Color(0xFF2C1D3E)
+private val CARD_BACK_COLOR: Color = Color(0xFF1A2236) // slate-navy back
+private val WILD_BACKGROUND: Color = Color(0xFF2A1040) // deep violet for wilds
 
-private val CARD_BACK_CORAL = Color(0xFFFF6B7D)
-private val CARD_BACK_MARIGOLD = Color(0xFFFFB547)
-private val CARD_BACK_MINT = Color(0xFF5FCF95)
-private val CARD_BACK_SKY = Color(0xFF5AAEE8)
+private val CARD_BACK_CORAL = Color(0xFFF0394C)
+private val CARD_BACK_MARIGOLD = Color(0xFFFFB53B)
+private val CARD_BACK_MINT = Color(0xFF2EE89B)
+private val CARD_BACK_SKY = Color(0xFF49B6FF)

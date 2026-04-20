@@ -69,6 +69,7 @@ import com.vivek.unosimple.engine.models.ReverseCard
 import com.vivek.unosimple.engine.models.SkipCard
 import com.vivek.unosimple.engine.models.WildDrawFourCard
 import com.vivek.unosimple.ui.theme.LocalClayTokens
+import com.vivek.unosimple.ui.theme.noiseBackground
 import kotlinx.coroutines.delay
 import com.vivek.unosimple.ui.TestTags
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -179,17 +180,30 @@ fun GameScreen(
             return@Surface
         }
 
-        // "Table felt" — a radial peach-to-cream glow that centers on the
-        // play area so draw + discard piles feel spotlit.
-        val tableAccent = LocalClayTokens.current.tableAccent
+        // Table felt — obsidian base with a subtle speckle texture, a faint
+        // warm spotlight centered on the discard pile, and a vignette that
+        // darkens the screen edges. Reads as "dim arcade lounge" rather
+        // than the old peach-on-cream gradient.
+        val bg = MaterialTheme.colorScheme.background
+        val spotlight = LocalClayTokens.current.tableAccent
         Box(
             modifier = Modifier
                 .fillMaxSize()
+                .noiseBackground(base = bg, density = 0.45f)
                 .background(
                     Brush.radialGradient(
-                        0f to tableAccent,
-                        1f to MaterialTheme.colorScheme.background,
-                        radius = 800f,
+                        0f to spotlight.copy(alpha = 0.55f),
+                        0.45f to Color.Transparent,
+                        1f to Color.Transparent,
+                        radius = 700f,
+                    )
+                )
+                .background(
+                    Brush.radialGradient(
+                        0f to Color.Transparent,
+                        0.7f to Color.Transparent,
+                        1f to Color(0xAA000000),
+                        radius = 1200f,
                     )
                 ),
         ) {
