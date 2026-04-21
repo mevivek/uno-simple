@@ -10,8 +10,11 @@ import dev.gitlive.firebase.database.database
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
@@ -61,12 +64,19 @@ class FirebaseSyncService(
     private val roomRef = database.reference("rooms/$roomCode")
     private val stateRef = roomRef.child("state")
     private val seatsRef = roomRef.child("seats")
+    private val emoteRef = roomRef.child("latestEmote")
 
     private val _state = MutableStateFlow<GameState?>(null)
     override val state: StateFlow<GameState?> = _state.asStateFlow()
 
     private val _players = MutableStateFlow<List<PlayerSeat>>(emptyList())
     override val players: StateFlow<List<PlayerSeat>> = _players.asStateFlow()
+
+    private val _emotes = MutableSharedFlow<EmoteEvent>(
+        replay = 0,
+        extraBufferCapacity = 8,
+    )
+    override val emoteEvents: SharedFlow<EmoteEvent> = _emotes.asSharedFlow()
 
     /**
      * Flips true after the seats snapshot has fired at least once. `joinSeat`
@@ -94,7 +104,30 @@ class FirebaseSyncService(
                 seatsLoaded.value = true
             }
         }
+        // Emotes: single-slot payload. Sender always writes a random nonce
+        // so identical reactions fired back-to-back still trigger a new
+        // snapshot on peers.
+        scope.launch {
+            emoteRef.valueEvents.collect { snapshot ->
+                val payload = runCatching {
+                    snapshot.value<LatestEmotePayload?>()
+                }.getOrNull() ?: return@collect
+                _emotes.tryEmit(EmoteEvent(senderId = payload.senderId, reaction = payload.reaction))
+            }
+        }
     }
+
+    override suspend fun broadcastEmote(reaction: String) {
+        val nonce = random.nextInt().toString(36) + random.nextInt().toString(36)
+        emoteRef.setValue(LatestEmotePayload(senderId = myId, reaction = reaction, nonce = nonce))
+    }
+
+    @kotlinx.serialization.Serializable
+    private data class LatestEmotePayload(
+        val senderId: String,
+        val reaction: String,
+        val nonce: String,
+    )
 
     override suspend fun joinSeat(seat: PlayerSeat) {
         // Await the first snapshot so we merge against real DB state rather

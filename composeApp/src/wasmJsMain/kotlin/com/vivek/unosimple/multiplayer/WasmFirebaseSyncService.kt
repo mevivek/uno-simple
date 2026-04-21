@@ -9,8 +9,11 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
@@ -62,12 +65,21 @@ class WasmFirebaseSyncService(
 
     private val stateRefPath = "rooms/$roomCode/state"
     private val seatsRefPath = "rooms/$roomCode/seats"
+    private val emoteRefPath = "rooms/$roomCode/latestEmote"
 
     private val _state = MutableStateFlow<GameState?>(null)
     override val state: StateFlow<GameState?> = _state.asStateFlow()
 
     private val _players = MutableStateFlow<List<PlayerSeat>>(emptyList())
     override val players: StateFlow<List<PlayerSeat>> = _players.asStateFlow()
+
+    // Emote stream — replays last 0, buffers 8, drops oldest on overflow so
+    // a burst doesn't block the network callback.
+    private val _emotes = MutableSharedFlow<EmoteEvent>(
+        replay = 0,
+        extraBufferCapacity = 8,
+    )
+    override val emoteEvents: SharedFlow<EmoteEvent> = _emotes.asSharedFlow()
 
     /**
      * Flips true after the seats subscription has fired at least once.
@@ -82,6 +94,7 @@ class WasmFirebaseSyncService(
 
     private val stateSubscriptionHandle: Int
     private val seatsSubscriptionHandle: Int
+    private val emoteSubscriptionHandle: Int
 
     init {
         // Subscribe immediately so state/seats populate as soon as Firebase
@@ -98,7 +111,33 @@ class WasmFirebaseSyncService(
             }.getOrDefault(emptyList())
             seatsLoaded.value = true
         }
+        // Emotes use a single-slot payload at rooms/{code}/latestEmote. The
+        // sender always includes a random nonce so back-to-back identical
+        // reactions (same sender, same icon) still produce a distinct JSON
+        // string and trigger the onValue callback on every peer.
+        emoteSubscriptionHandle = unoDbSubscribe(emoteRefPath) { raw ->
+            if (raw.isEmpty()) return@unoDbSubscribe
+            val payload = runCatching {
+                json.decodeFromString(LatestEmotePayload.serializer(), raw)
+            }.getOrNull() ?: return@unoDbSubscribe
+            // tryEmit so the onValue callback (called from JS main thread)
+            // never suspends waiting for a subscriber.
+            _emotes.tryEmit(EmoteEvent(senderId = payload.senderId, reaction = payload.reaction))
+        }
     }
+
+    override suspend fun broadcastEmote(reaction: String) {
+        val nonce = random.nextInt().toString(36) + random.nextInt().toString(36)
+        val payload = LatestEmotePayload(senderId = myId, reaction = reaction, nonce = nonce)
+        unoDbSet(emoteRefPath, json.encodeToString(LatestEmotePayload.serializer(), payload))
+    }
+
+    @kotlinx.serialization.Serializable
+    private data class LatestEmotePayload(
+        val senderId: String,
+        val reaction: String,
+        val nonce: String,
+    )
 
     override suspend fun joinSeat(seat: PlayerSeat) {
         // Wait for the first snapshot so we merge against the real DB state
@@ -154,6 +193,7 @@ class WasmFirebaseSyncService(
         scope.launch {
             unoDbUnsubscribe(stateSubscriptionHandle)
             unoDbUnsubscribe(seatsSubscriptionHandle)
+            unoDbUnsubscribe(emoteSubscriptionHandle)
         }
         scope.cancel()
     }
