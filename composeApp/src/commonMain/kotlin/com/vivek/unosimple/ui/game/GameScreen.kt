@@ -514,8 +514,6 @@ internal fun OpponentRow(state: GameState, humanId: String) {
 
 @Composable
 internal fun OpponentCard(player: Player, isCurrent: Boolean) {
-    val bg = if (isCurrent) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant
-
     // Hand-size change feedback:
     //   +1  → a brief "+1" badge pops above the tile (regular draw)
     //   +2+ → cascade shake (they ate a +2 / +4 stack)
@@ -545,6 +543,10 @@ internal fun OpponentCard(player: Player, isCurrent: Boolean) {
     }
 
     val flightCtrl = LocalCardFlight.current
+    val activeRing = MaterialTheme.colorScheme.primary
+    val inactiveStroke = LocalClayTokens.current.strokeColor
+    val tileBg = MaterialTheme.colorScheme.surface
+
     Box(
         modifier = Modifier
             .offset(x = shakeX.value.dp)
@@ -555,28 +557,48 @@ internal fun OpponentCard(player: Player, isCurrent: Boolean) {
             modifier = Modifier
                 .scale(tileScale.value)
                 .clip(RoundedCornerShape(16.dp))
-                .background(bg)
+                .background(tileBg)
+                .drawBehind {
+                    // Active-opponent rim: neon-amber stroke around the tile
+                    // so it's unmistakable whose turn it is. Inactive tiles
+                    // get a faint slate stroke so the silhouette still reads.
+                    val stroke = if (isCurrent) 2.5.dp.toPx() else 1.dp.toPx()
+                    val ringColor = if (isCurrent) activeRing else inactiveStroke
+                    drawRoundRect(
+                        color = ringColor,
+                        cornerRadius = androidx.compose.ui.geometry.CornerRadius(16.dp.toPx()),
+                        style = Stroke(width = stroke),
+                    )
+                }
                 .padding(horizontal = 12.dp, vertical = 10.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                PlayerAvatar(id = player.id, name = player.name, size = 44.dp)
-                Spacer(Modifier.width(8.dp))
-                Column {
+            // Portrait frame: avatar centered under the name; bigger than
+            // the old 44dp so the persona reads at a glance.
+            PlayerAvatar(id = player.id, name = player.name, size = 52.dp)
+            Spacer(Modifier.height(4.dp))
+            Text(
+                text = player.name,
+                style = MaterialTheme.typography.titleSmall,
+                color = MaterialTheme.colorScheme.onSurface,
+                fontWeight = FontWeight.Black,
+            )
+            // UNO! pill — when they're down to one card. Neon green so it
+            // telegraphs "last card" danger rather than hides as small text.
+            if (player.hasCalledUno) {
+                Spacer(Modifier.height(4.dp))
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(50))
+                        .background(MaterialTheme.colorScheme.tertiary)
+                        .padding(horizontal = 10.dp, vertical = 2.dp),
+                ) {
                     Text(
-                        text = player.name,
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface,
+                        "UNO!",
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Black,
+                        color = MaterialTheme.colorScheme.onTertiary,
                     )
-                    if (player.hasCalledUno) {
-                        Text(
-                            text = "UNO!",
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.tertiary,
-                            fontWeight = FontWeight.Black,
-                        )
-                    }
                 }
             }
             Spacer(Modifier.height(6.dp))
@@ -584,10 +606,10 @@ internal fun OpponentCard(player: Player, isCurrent: Boolean) {
             Spacer(Modifier.height(4.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    text = "${player.handSize} card${if (player.handSize == 1) "" else "s"}",
-                    style = MaterialTheme.typography.labelSmall,
+                    text = "${player.handSize}",
+                    style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    fontWeight = FontWeight.Bold,
+                    fontWeight = FontWeight.Black,
                 )
                 AnimatedVisibility(
                     visible = drewBadgeVisible,
@@ -603,7 +625,7 @@ internal fun OpponentCard(player: Player, isCurrent: Boolean) {
                     ) {
                         Text(
                             "+1",
-                            style = MaterialTheme.typography.labelMedium,
+                            style = MaterialTheme.typography.labelSmall,
                             fontWeight = FontWeight.Black,
                             color = MaterialTheme.colorScheme.onSecondary,
                         )
@@ -1032,24 +1054,33 @@ internal fun HumanHand(
                 }
             }
         }
-        // FlowRow wraps cards onto a second row when they overflow the
-        // screen width — avoids a horizontal scroll on phones where a
-        // 7-card hand wouldn't fit in a single row.
+        // FlowRow wraps cards onto a second row when they overflow. Within a
+        // row each card fans with a subtle rotation + y-lift (more for cards
+        // further from the row center) so the hand reads as a held arc
+        // rather than a flat strip.
+        val n = human.hand.size
+        val mid = (n - 1) / 2f
         FlowRow(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 4.dp, vertical = 6.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterHorizontally),
+            horizontalArrangement = Arrangement.spacedBy(4.dp, Alignment.CenterHorizontally),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             val flightCtrl = LocalCardFlight.current
             for ((index, card) in human.hand.withIndex()) {
                 val isLegal = card in legalSet
+                val offsetFromMid = (index - mid)
+                val rotationDeg = (offsetFromMid * 3.5f).coerceIn(-18f, 18f)
+                val yLiftDp = (offsetFromMid * offsetFromMid * 1.4f).coerceAtMost(14f)
                 AnimatedCardEntry(index = index) {
                     Box(
-                        modifier = Modifier.reportPosition { pos ->
-                            flightCtrl?.setHandPos(card, pos)
-                        },
+                        modifier = Modifier
+                            .offset(y = yLiftDp.dp)
+                            .rotate(rotationDeg)
+                            .reportPosition { pos ->
+                                flightCtrl?.setHandPos(card, pos)
+                            },
                     ) {
                         if (isLegal) {
                             LegalGlow {

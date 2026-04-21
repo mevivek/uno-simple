@@ -142,7 +142,7 @@ No feature is "done" until all applicable layers above are green.
 - Don't use legacy state APIs (LiveData, RxJava) — stick to Flow + Compose State.
 - Don't use deprecated APIs (old Compose Material, pre-M3 stuff).
 - Don't commit without green `./gradlew :shared:desktopTest` and at least one target building.
-- Don't pin the exact UNO visual trademark (Mattel red/yellow/green/blue + specific font + card back). Use an original design.
+- ~~Don't pin the exact UNO visual trademark.~~ **Rescinded 2026-04-20:** the app is strictly personal-device use, never going to an app store, so Mattel's red/yellow/green/blue palette, font, and card-back wordmark are fair game. Reference the real game's visual language freely when it improves fidelity.
 - Don't add features for hypothetical future requirements. YAGNI.
 
 ## How future sessions pick up

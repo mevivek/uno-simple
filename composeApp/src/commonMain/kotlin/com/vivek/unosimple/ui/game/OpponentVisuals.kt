@@ -45,7 +45,14 @@ internal fun PlayerAvatar(
     id: String,
     name: String,
     size: Dp = 36.dp,
+    avatarOverride: String? = null,
 ) {
+    // Explicit persona override (set when the user picked one in the avatar
+    // picker) wins over the id-based routing.
+    if (avatarOverride != null && isBotId(avatarOverride)) {
+        BotAvatar(persona = personaFor(avatarOverride), size = size)
+        return
+    }
     if (isBotId(id)) {
         BotAvatar(persona = personaFor(id), size = size)
         return

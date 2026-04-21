@@ -102,9 +102,8 @@ fun OnlineLobbyScreen(
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 Text(
-                    "Play online",
+                    "PLAY ONLINE",
                     style = MaterialTheme.typography.displaySmall,
-                    fontWeight = FontWeight.Black,
                     color = MaterialTheme.colorScheme.primary,
                 )
 
@@ -193,7 +192,7 @@ private fun ChooseRoute(onCreate: () -> Unit, onJoinPressed: () -> Unit) {
         horizontalArrangement = Arrangement.spacedBy(14.dp),
     ) {
         RouteCard(
-            title = "Create",
+            title = "CREATE",
             subtitle = "new room",
             color = MaterialTheme.colorScheme.primary,
             contentColor = MaterialTheme.colorScheme.onPrimary,
@@ -203,7 +202,7 @@ private fun ChooseRoute(onCreate: () -> Unit, onJoinPressed: () -> Unit) {
             onClick = onCreate,
         )
         RouteCard(
-            title = "Join",
+            title = "JOIN",
             subtitle = "with code",
             color = MaterialTheme.colorScheme.secondary,
             contentColor = MaterialTheme.colorScheme.onSecondary,
@@ -259,10 +258,10 @@ private fun JoinRoute(
 ) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Text(
-            "4-digit code",
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onBackground,
+            "ENTER 4-DIGIT CODE",
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            fontWeight = FontWeight.Black,
         )
         Spacer(Modifier.height(14.dp))
 
@@ -305,8 +304,8 @@ private fun JoinRoute(
             contentPadding = PaddingValues(horizontal = 32.dp, vertical = 16.dp),
         ) {
             Text(
-                "Join room",
-                style = MaterialTheme.typography.titleMedium,
+                "JOIN ROOM",
+                style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Black,
             )
         }

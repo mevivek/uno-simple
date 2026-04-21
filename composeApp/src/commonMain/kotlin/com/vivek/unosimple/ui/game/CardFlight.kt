@@ -160,6 +160,36 @@ private fun FlyingCard(flight: Flight, onDone: () -> Unit) {
     // Rotation: -6° → +2° over the flight, gives personality.
     val rotation = -6f + 8f * t
 
+    // Shadow trail — three fading ghosts behind the flight path, each one
+    // lagging further behind. Gives the card weight + motion blur without
+    // a real blur shader (which Compose Wasm doesn't always honor).
+    val trailPositions = listOf(0.08f, 0.14f, 0.22f)
+    trailPositions.forEach { lag ->
+        val tLag = (t - lag).coerceAtLeast(0f)
+        if (tLag > 0f) {
+            val xl = flight.start.x + (flight.end.x - flight.start.x) * tLag - halfW
+            val yl = flight.start.y + (flight.end.y - flight.start.y) * tLag - halfH
+            val arcL = (4f * tLag * (1f - tLag)) * archPx
+            val alphaL = (1f - lag * 3f).coerceAtLeast(0f) * (1f - t * 0.3f).coerceAtLeast(0f) * 0.4f
+            Box(
+                modifier = Modifier
+                    .offset { IntOffset(xl.roundToInt(), (yl + arcL).roundToInt()) }
+                    .graphicsLayer {
+                        rotationZ = rotation
+                        scaleX = scale * 0.96f
+                        scaleY = scale * 0.96f
+                        alpha = alphaL
+                    },
+            ) {
+                CardView(
+                    card = if (flight.faceDown) null else flight.card,
+                    enabled = true,
+                    onClick = null,
+                )
+            }
+        }
+    }
+
     Box(
         modifier = Modifier
             .offset { IntOffset(x.roundToInt(), (y + arc).roundToInt()) }

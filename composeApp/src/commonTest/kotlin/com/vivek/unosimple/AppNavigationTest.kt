@@ -44,7 +44,7 @@ class AppNavigationTest {
 
     @Test
     fun clickingStartButtonTakesUserFromHomeToGame() = runComposeUiTest {
-        setContent { App() }
+        setContent { App(overrideInitialScreen = com.vivek.unosimple.ui.Screen.Home) }
 
         onNodeWithTag(TestTags.HOME_SCREEN).assertIsDisplayed()
         onNodeWithTag(TestTags.HOME_START_BUTTON).performClick()
@@ -59,7 +59,7 @@ class AppNavigationTest {
 
     @Test
     fun menuButtonReturnsUserToHome() = runComposeUiTest {
-        setContent { App() }
+        setContent { App(overrideInitialScreen = com.vivek.unosimple.ui.Screen.Home) }
 
         onNodeWithTag(TestTags.HOME_START_BUTTON).performClick()
         waitForIdle()

@@ -48,6 +48,7 @@ import com.vivek.unosimple.ui.theme.ClaySurface
 fun ProfileScreen(
     profile: ProfileRepository,
     onBack: () -> Unit,
+    onPickAvatar: () -> Unit = {},
 ) {
     val current by profile.profile.collectAsState()
     var editing by remember { mutableStateOf(current.displayName) }
@@ -85,11 +86,25 @@ fun ProfileScreen(
                 )
                 Spacer(Modifier.height(24.dp))
 
-                // Big avatar; color derives from uid so it's deterministic.
-                PlayerAvatar(
-                    id = current.uid,
-                    name = current.displayName.ifBlank { "?" },
-                    size = 96.dp,
+                // Big avatar — renders the picked persona if one is set,
+                // else the uid-derived initial-on-disc fallback. Tapping
+                // routes to the dedicated avatar picker.
+                Box(
+                    modifier = Modifier.clickable(onClick = onPickAvatar),
+                ) {
+                    PlayerAvatar(
+                        id = current.uid,
+                        name = current.displayName.ifBlank { "?" },
+                        size = 96.dp,
+                        avatarOverride = current.avatarId,
+                    )
+                }
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    "TAP TO CHANGE",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontWeight = FontWeight.Black,
                 )
 
                 Spacer(Modifier.height(20.dp))

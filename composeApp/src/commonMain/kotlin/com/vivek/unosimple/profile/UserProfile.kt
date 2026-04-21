@@ -16,17 +16,26 @@ import kotlin.random.Random
  * clears site data).
  *
  * Treat this as the device's "identity" in online multiplayer: other
- * clients see [displayName] and the avatar derived from [uid]. F2 (friends)
- * will mirror this profile into Firebase RTDB under `users/{uid}` so other
- * clients can look up your name / avatar when you join their room.
+ * clients see [displayName] and the avatar derived from [avatarId] (or
+ * falls back to a color derived from [uid]). F2 (friends) will mirror this
+ * profile into Firebase RTDB under `users/{uid}` so other clients can look
+ * up your name / avatar when you join their room.
  *
  * @property uid stable identifier used as the multiplayer client id.
  * @property displayName shown on opponent tiles + lobby seats. 1–20 chars.
+ * @property avatarId optional persona id (e.g. "bot1"..."bot9") that the
+ *   user picked in the avatar picker. Null = fall back to the initial-on-
+ *   disc avatar. Re-uses the `BotPersona` illustrations rather than ship
+ *   a separate set of art.
+ * @property hasSeenTutorial true once the user completes onboarding. Gates
+ *   whether the app lands on Home or the onboarding flow.
  */
 @Serializable
 data class UserProfile(
     val uid: String,
     val displayName: String,
+    val avatarId: String? = null,
+    val hasSeenTutorial: Boolean = false,
 ) {
     init {
         require(uid.isNotBlank()) { "uid must not be blank" }
@@ -45,6 +54,20 @@ class ProfileRepository(
     fun setDisplayName(name: String) {
         val trimmed = name.trim().take(20).ifBlank { "Player" }
         val next = _profile.value.copy(displayName = trimmed)
+        _profile.value = next
+        persist(next)
+    }
+
+    fun setAvatarId(avatarId: String?) {
+        val next = _profile.value.copy(avatarId = avatarId)
+        _profile.value = next
+        persist(next)
+    }
+
+    fun markTutorialSeen() {
+        val cur = _profile.value
+        if (cur.hasSeenTutorial) return
+        val next = cur.copy(hasSeenTutorial = true)
         _profile.value = next
         persist(next)
     }

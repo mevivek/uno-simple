@@ -9,17 +9,22 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FilterChipDefaults
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.ui.draw.clip
+import com.vivek.unosimple.ui.theme.ClayButton
+import com.vivek.unosimple.ui.theme.GhostButton
+import com.vivek.unosimple.ui.theme.LocalClayTokens
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
@@ -64,31 +69,33 @@ fun LobbyScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Text(
-                text = "Local multiplayer",
+                text = "PASS & PLAY",
                 style = MaterialTheme.typography.displaySmall,
-                fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.primary,
             )
-            Spacer(Modifier.height(8.dp))
+            Spacer(Modifier.height(6.dp))
             Text(
-                text = "Pass the device after each turn.",
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onBackground,
+                text = "Hand the device around after each turn.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
 
             Spacer(Modifier.height(28.dp))
 
-            Text("Players", style = MaterialTheme.typography.titleMedium)
+            Text(
+                text = "HOW MANY PLAYERS",
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                fontWeight = FontWeight.Black,
+            )
             Spacer(Modifier.height(12.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 for (count in 2..4) {
-                    FilterChip(
+                    CountChip(
+                        count = count,
                         selected = playerCount == count,
                         onClick = { playerCount = count },
-                        label = { Text("$count") },
-                        shape = RoundedCornerShape(50),
-                        colors = FilterChipDefaults.filterChipColors(),
-                        modifier = Modifier.testTag("${TestTags.LOBBY_COUNT_CHIP_PREFIX}$count"),
+                        tag = "${TestTags.LOBBY_COUNT_CHIP_PREFIX}$count",
                     )
                 }
             }
@@ -99,8 +106,14 @@ fun LobbyScreen(
                 OutlinedTextField(
                     value = names[i],
                     onValueChange = { names[i] = it },
-                    label = { Text("Player ${i + 1}") },
+                    label = { Text("Player ${i + 1}", style = MaterialTheme.typography.labelMedium) },
                     singleLine = true,
+                    shape = RoundedCornerShape(12.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = MaterialTheme.colorScheme.primary,
+                        unfocusedBorderColor = MaterialTheme.colorScheme.outline,
+                        focusedLabelColor = MaterialTheme.colorScheme.primary,
+                    ),
                     modifier = Modifier
                         .fillMaxWidth()
                         .testTag("${TestTags.LOBBY_NAME_FIELD_PREFIX}$i"),
@@ -110,7 +123,7 @@ fun LobbyScreen(
 
             Spacer(Modifier.weight(1f))
 
-            Button(
+            ClayButton(
                 onClick = {
                     val seats = (0 until playerCount).map { i ->
                         PlayerSeat(id = "p${i + 1}", displayName = names[i].ifBlank { "Player ${i + 1}" })
@@ -118,22 +131,62 @@ fun LobbyScreen(
                     onStart(seats)
                 },
                 modifier = Modifier
-                    .widthIn(min = 220.dp)
+                    .widthIn(min = 240.dp)
                     .testTag(TestTags.LOBBY_START_BUTTON),
-                shape = RoundedCornerShape(50),
-                contentPadding = PaddingValues(horizontal = 32.dp, vertical = 16.dp),
-                colors = ButtonDefaults.buttonColors(),
+                color = MaterialTheme.colorScheme.primary,
+                contentColor = MaterialTheme.colorScheme.onPrimary,
+                contentPadding = PaddingValues(horizontal = 40.dp, vertical = 18.dp),
             ) {
-                Text("Start round", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                Text(
+                    "START ROUND",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Black,
+                )
             }
 
-            Spacer(Modifier.height(8.dp))
+            Spacer(Modifier.height(10.dp))
 
-            OutlinedButton(
+            GhostButton(
                 onClick = onBack,
-                modifier = Modifier.widthIn(min = 220.dp),
-                shape = RoundedCornerShape(50),
-            ) { Text("Back") }
+                modifier = Modifier.widthIn(min = 240.dp),
+                contentPadding = PaddingValues(horizontal = 32.dp, vertical = 12.dp),
+            ) {
+                Text("BACK", style = MaterialTheme.typography.titleMedium)
+            }
         }
+    }
+}
+
+/**
+ * Chunky rounded count selector (2 / 3 / 4). Selected = amber slab;
+ * unselected = slate panel with a thin stroke. Replaces the Material
+ * FilterChip which felt templated against the arcade language.
+ */
+@Composable
+private fun CountChip(count: Int, selected: Boolean, onClick: () -> Unit, tag: String) {
+    val stroke = LocalClayTokens.current.strokeColor
+    androidx.compose.foundation.layout.Box(
+        modifier = Modifier
+            .size(64.dp)
+            .clip(CircleShape)
+            .background(
+                if (selected) MaterialTheme.colorScheme.primary
+                else MaterialTheme.colorScheme.surface
+            )
+            .border(
+                width = if (selected) 0.dp else 1.dp,
+                color = if (selected) MaterialTheme.colorScheme.primary else stroke,
+                shape = CircleShape,
+            )
+            .clickable(onClick = onClick)
+            .testTag(tag),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            text = "$count",
+            style = MaterialTheme.typography.headlineMedium,
+            fontWeight = FontWeight.Black,
+            color = if (selected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onBackground,
+        )
     }
 }

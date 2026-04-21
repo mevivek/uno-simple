@@ -92,7 +92,14 @@ private fun OnlineNotSupportedScreen(onBack: () -> Unit) {
 }
 
 @Composable
-fun App() {
+fun App(
+    /**
+     * Optional override for the starting screen. Production passes `null`
+     * (→ Splash → routing). Tests pass `Screen.Home` to skip the 1.4-second
+     * splash animation so click-through assertions land immediately.
+     */
+    overrideInitialScreen: Screen? = null,
+) {
     UnoTheme {
         // Install a ViewModelStoreOwner for the duration of the app. On
         // Android this is unused (Activity/Fragment already provide one);
@@ -131,12 +138,10 @@ fun App() {
                 // back to Home. `botCount` is a rough placeholder; GameScreen
                 // reads the real count from the saved state.
                 var screen: Screen by remember {
-                    val initial: Screen = if (GameViewModel.hasSavedSession()) {
-                        Screen.Game(botCount = 2)
-                    } else {
-                        Screen.Home
-                    }
-                    mutableStateOf(initial)
+                    // Cold-launch routing: Splash → Onboarding (first run) →
+                    // Home. Tests pass overrideInitialScreen = Screen.Home
+                    // to skip the splash animation.
+                    mutableStateOf<Screen>(overrideInitialScreen ?: Screen.Splash)
                 }
 
                 CompositionLocalProvider(
@@ -145,6 +150,25 @@ fun App() {
                 ) {
                 com.vivek.unosimple.ui.adaptive.AdaptiveScreenContainer {
                 when (val s = screen) {
+                    Screen.Splash -> com.vivek.unosimple.ui.onboarding.SplashScreen(
+                        onDone = {
+                            // After splash: saved game resumes straight to Game;
+                            // first-run goes to Onboarding; returning users go Home.
+                            screen = when {
+                                GameViewModel.hasSavedSession() -> Screen.Game(botCount = 2)
+                                !profile.profile.value.hasSeenTutorial -> Screen.Onboarding
+                                else -> Screen.Home
+                            }
+                        },
+                    )
+                    Screen.Onboarding -> com.vivek.unosimple.ui.onboarding.OnboardingScreen(
+                        profile = profile,
+                        onDone = { screen = Screen.Home },
+                    )
+                    Screen.AvatarPicker -> com.vivek.unosimple.ui.profile.AvatarPickerScreen(
+                        profile = profile,
+                        onBack = { screen = Screen.Profile },
+                    )
                     Screen.Home -> HomeScreen(
                         onStartGame = { botCount -> screen = Screen.Game(botCount) },
                         onOpenSettings = { screen = Screen.Settings },
@@ -160,6 +184,7 @@ fun App() {
                     Screen.Profile -> com.vivek.unosimple.ui.profile.ProfileScreen(
                         profile = profile,
                         onBack = { screen = Screen.Settings },
+                        onPickAvatar = { screen = Screen.AvatarPicker },
                     )
                     Screen.Lobby -> LobbyScreen(
                         onStart = { seats -> screen = Screen.Hotseat(seats) },

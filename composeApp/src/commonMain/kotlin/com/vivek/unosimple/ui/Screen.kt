@@ -6,9 +6,12 @@ package com.vivek.unosimple.ui
  * screens to justify it (settings, rules, stats, post-round).
  */
 sealed interface Screen {
+    data object Splash : Screen
+    data object Onboarding : Screen
     data object Home : Screen
     data object Settings : Screen
     data object Profile : Screen
+    data object AvatarPicker : Screen
     data object Lobby : Screen
     data object OnlineLobby : Screen
 
