@@ -1,7 +1,9 @@
 package com.vivek.unosimple.ui.settings
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -10,14 +12,18 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
+import com.vivek.unosimple.ui.common.BackIcon
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
+import androidx.compose.foundation.verticalScroll
 import com.vivek.unosimple.ui.theme.ClaySurface
 import com.vivek.unosimple.ui.theme.GhostButton
 import androidx.compose.runtime.Composable
@@ -47,11 +53,13 @@ fun SettingsScreen(
         modifier = Modifier.fillMaxSize().testTag(TestTags.SETTINGS_SCREEN),
         color = MaterialTheme.colorScheme.background,
     ) {
+        Box(modifier = Modifier.fillMaxSize()) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .verticalScroll(androidx.compose.foundation.rememberScrollState())
                 .padding(horizontal = 24.dp)
-                .padding(top = 48.dp, bottom = 24.dp),
+                .padding(top = 72.dp, bottom = 24.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Text(
@@ -133,19 +141,24 @@ fun SettingsScreen(
                 LinkRow(label = "About", chevronText = "v${com.vivek.unosimple.BuildInfo.BUILD_STAMP} \u203A", onClick = onOpenAbout)
             }
 
-            Spacer(Modifier.weight(1f))
-
-            GhostButton(
-                onClick = onDone,
-                modifier = Modifier.fillMaxWidth().testTag(TestTags.SETTINGS_BACK_BUTTON),
-                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 14.dp),
-            ) {
-                Text(
-                    "BACK",
-                    style = MaterialTheme.typography.titleMedium,
-                )
-            }
+            // Top-left back arrow is the primary back affordance now.
         }
+        // Back button LAST so it z-orders above the Column and receives
+        // taps. Same visual result (top-left corner) thanks to align().
+        Box(
+            modifier = Modifier
+                .align(Alignment.TopStart)
+                .padding(16.dp)
+                .size(40.dp)
+                .clip(CircleShape)
+                .background(MaterialTheme.colorScheme.surface)
+                .clickable(onClick = onDone)
+                .testTag(TestTags.SETTINGS_BACK_BUTTON),
+            contentAlignment = Alignment.Center,
+        ) {
+            BackIcon(size = 20.dp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        } // close outer Box
     }
 }
 

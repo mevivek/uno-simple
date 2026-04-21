@@ -33,11 +33,15 @@ import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.runtime.LaunchedEffect
 import com.vivek.unosimple.profile.ProfileRepository
 import com.vivek.unosimple.ui.common.BackIcon
+import com.vivek.unosimple.ui.game.HeartsRainOverlay
 import com.vivek.unosimple.ui.game.PlayerAvatar
+import com.vivek.unosimple.ui.game.isGeetName
 import com.vivek.unosimple.ui.theme.ClayButton
 import com.vivek.unosimple.ui.theme.ClaySurface
+import kotlinx.coroutines.delay
 
 /**
  * Profile screen: a big avatar (color derived from the profile UID) and an
@@ -53,6 +57,21 @@ fun ProfileScreen(
 ) {
     val current by profile.profile.collectAsState()
     var editing by remember { mutableStateOf(current.displayName) }
+
+    // Geet easter egg — also triggers here when the user edits their name.
+    // Fires on every transition INTO a matching name (not on each keystroke
+    // after, since the predicate re-checks only when the string equals).
+    // Also fires once on entry if the stored name was already set to Geet,
+    // so she gets a welcome-back shower.
+    var heartsRaining by remember { mutableStateOf(false) }
+    LaunchedEffect(editing) {
+        if (isGeetName(editing)) {
+            heartsRaining = true
+            profile.setAvatarId("bot10")
+            delay(3800)
+            heartsRaining = false
+        }
+    }
 
     Surface(
         modifier = Modifier.fillMaxSize(),
@@ -230,6 +249,8 @@ fun ProfileScreen(
                     )
                 }
             }
+            // Easter-egg overlay — pink hearts fall when Geet is entered.
+            HeartsRainOverlay(visible = heartsRaining)
         }
     }
 }

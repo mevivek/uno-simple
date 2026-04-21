@@ -157,6 +157,18 @@ fun App(
                     // to skip the splash animation.
                     mutableStateOf<Screen>(overrideInitialScreen ?: Screen.Splash)
                 }
+                // Back-stack — push on forward nav, pop on back. Keeps
+                // "back" context-correct (e.g. Settings → Rules → back
+                // returns to Settings, not Home) without hardcoding a
+                // return target in every screen's onBack callback.
+                val backStack = remember { mutableListOf<Screen>() }
+                val pushTo: (Screen) -> Unit = { next ->
+                    backStack.add(screen)
+                    screen = next
+                }
+                val goBack: (fallback: Screen) -> Unit = { fallback ->
+                    screen = if (backStack.isNotEmpty()) backStack.removeAt(backStack.lastIndex) else fallback
+                }
 
                 CompositionLocalProvider(
                     com.vivek.unosimple.ui.theme.LocalReducedMotion provides settingsState.reducedMotion,
@@ -177,78 +189,92 @@ fun App(
                     )
                     Screen.Onboarding -> com.vivek.unosimple.ui.onboarding.OnboardingScreen(
                         profile = profile,
-                        onDone = { screen = Screen.Home },
+                        onDone = {
+                            // Fresh start after onboarding — don't let back
+                            // return to the one-time onboarding flow.
+                            backStack.clear()
+                            screen = Screen.Home
+                        },
                     )
                     Screen.AvatarPicker -> com.vivek.unosimple.ui.profile.AvatarPickerScreen(
                         profile = profile,
-                        onBack = { screen = Screen.Profile },
+                        onBack = { goBack(Screen.Profile) },
                     )
                     Screen.Home -> HomeScreen(
-                        onStartGame = { botCount -> screen = Screen.Game(botCount) },
-                        onOpenSettings = { screen = Screen.Settings },
-                        onOpenLobby = { screen = Screen.Lobby },
-                        onOpenOnlineLobby = { screen = Screen.OnlineLobby },
+                        onStartGame = { botCount -> pushTo(Screen.Game(botCount)) },
+                        onOpenSettings = { pushTo(Screen.Settings) },
+                        onOpenLobby = { pushTo(Screen.Lobby) },
+                        onOpenOnlineLobby = { pushTo(Screen.OnlineLobby) },
                         firebaseAvailable = firebaseSupported,
                     )
                     Screen.Settings -> SettingsScreen(
                         settings = settings,
-                        onOpenProfile = { screen = Screen.Profile },
-                        onOpenRules = { screen = Screen.Rules },
-                        onOpenAbout = { screen = Screen.About },
-                        onDone = { screen = Screen.Home },
+                        onOpenProfile = { pushTo(Screen.Profile) },
+                        onOpenRules = { pushTo(Screen.Rules) },
+                        onOpenAbout = { pushTo(Screen.About) },
+                        onDone = { goBack(Screen.Home) },
                     )
                     Screen.Profile -> com.vivek.unosimple.ui.profile.ProfileScreen(
                         profile = profile,
-                        onBack = { screen = Screen.Settings },
-                        onPickAvatar = { screen = Screen.AvatarPicker },
-                        onOpenStats = { screen = Screen.Stats },
+                        onBack = { goBack(Screen.Settings) },
+                        onPickAvatar = { pushTo(Screen.AvatarPicker) },
+                        onOpenStats = { pushTo(Screen.Stats) },
                     )
                     Screen.Lobby -> LobbyScreen(
-                        onStart = { seats -> screen = Screen.Hotseat(seats) },
-                        onBack = { screen = Screen.Home },
+                        onStart = { seats ->
+                            backStack.clear()
+                            screen = Screen.Hotseat(seats)
+                        },
+                        onBack = { goBack(Screen.Home) },
                     )
                     Screen.OnlineLobby -> OnlineLobbyScreen(
                         profileName = profile.profile.value.displayName,
                         onCreateRoom = { name, code ->
-                            // If the user edited the name in the lobby, push
-                            // it back into the profile so it sticks next time.
                             if (name != profile.profile.value.displayName) profile.setDisplayName(name)
+                            backStack.clear()
                             screen = Screen.Online(displayName = name, roomCode = code, isHost = true)
                         },
                         onJoinRoom = { name, code ->
                             if (name != profile.profile.value.displayName) profile.setDisplayName(name)
+                            backStack.clear()
                             screen = Screen.Online(displayName = name, roomCode = code, isHost = false)
                         },
-                        onBack = { screen = Screen.Home },
+                        onBack = { goBack(Screen.Home) },
                     )
                     is Screen.Game -> GameScreen(
                         botCount = s.botCount,
-                        onBackToHome = { screen = Screen.Home },
-                        onOpenRules = { screen = Screen.Rules },
-                        onOpenSettings = { screen = Screen.Settings },
+                        onBackToHome = {
+                            backStack.clear()
+                            screen = Screen.Home
+                        },
+                        onOpenRules = { pushTo(Screen.Rules) },
+                        onOpenSettings = { pushTo(Screen.Settings) },
                         vm = viewModel(factory = gameVmFactory),
                     )
                     Screen.Rules -> com.vivek.unosimple.ui.rules.RulesScreen(
-                        onBack = { screen = Screen.Home },
+                        onBack = { goBack(Screen.Home) },
                     )
                     Screen.About -> com.vivek.unosimple.ui.about.AboutScreen(
-                        onBack = { screen = Screen.Settings },
+                        onBack = { goBack(Screen.Settings) },
                     )
                     Screen.Stats -> com.vivek.unosimple.ui.stats.StatsScreen(
                         history = history,
                         humanId = profile.profile.value.uid,
-                        onBack = { screen = Screen.Profile },
-                        onOpenAchievements = { screen = Screen.Achievements },
+                        onBack = { goBack(Screen.Profile) },
+                        onOpenAchievements = { pushTo(Screen.Achievements) },
                     )
                     Screen.Achievements -> com.vivek.unosimple.ui.stats.AchievementsScreen(
                         achievements = achievements,
-                        onBack = { screen = Screen.Stats },
+                        onBack = { goBack(Screen.Stats) },
                     )
                     is Screen.Hotseat -> {
                         val vm = remember(s.seats) { HotseatGameViewModel(seats = s.seats) }
                         HotseatGameScreen(
                             vm = vm,
-                            onBackToHome = { screen = Screen.Home },
+                            onBackToHome = {
+                                backStack.clear()
+                                screen = Screen.Home
+                            },
                         )
                     }
                     is Screen.Online -> {
@@ -266,7 +292,7 @@ fun App(
                             createFirebaseSyncService(myId = myId, roomCode = s.roomCode)
                         }
                         if (sync == null) {
-                            OnlineNotSupportedScreen(onBack = { screen = Screen.Home })
+                            OnlineNotSupportedScreen(onBack = { goBack(Screen.Home) })
                         } else {
                             val vm = remember(sync) { OnlineGameViewModel(sync) }
                             // Both host and guest append themselves to the
@@ -281,7 +307,10 @@ fun App(
                                 vm = vm,
                                 isHost = s.isHost,
                                 roomCode = s.roomCode,
-                                onBackToHome = { screen = Screen.Home },
+                                onBackToHome = {
+                                    backStack.clear()
+                                    screen = Screen.Home
+                                },
                             )
                         }
                     }
