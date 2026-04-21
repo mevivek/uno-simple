@@ -15,6 +15,10 @@ import com.vivek.unosimple.engine.models.Card
 import com.vivek.unosimple.engine.models.CardColor
 import com.vivek.unosimple.engine.models.GameAction
 import com.vivek.unosimple.engine.models.GameState
+import com.vivek.unosimple.engine.achievements.Achievement
+import com.vivek.unosimple.persistence.AchievementRepository
+import com.vivek.unosimple.persistence.HistoryRepository
+import com.vivek.unosimple.persistence.RoundRecord
 import com.vivek.unosimple.persistence.SessionStore
 import com.vivek.unosimple.ui.game.BOTS
 import kotlinx.coroutines.Job
@@ -54,7 +58,17 @@ class GameViewModel(
      * the ViewModel without involving the UI.
      */
     val humanPlayerId: String? = "p1",
+    /**
+     * Repositories for append-only history + achievements. App-level VM
+     * instances share a single repo; tests can inject fresh instances.
+     */
+    val history: HistoryRepository = HistoryRepository(),
+    val achievements: AchievementRepository = AchievementRepository(),
 ) : ViewModel() {
+
+    /** Newly-unlocked achievements from the most recent round, or empty. */
+    private val _recentUnlocks = MutableStateFlow<Set<Achievement>>(emptySet())
+    val recentUnlocks: StateFlow<Set<Achievement>> = _recentUnlocks.asStateFlow()
 
     private val _state = MutableStateFlow<GameState?>(null)
     val state: StateFlow<GameState?> = _state.asStateFlow()
@@ -67,6 +81,7 @@ class GameViewModel(
         // the active round. Drop(1) skips the initial `null` emission so we
         // don't immediately wipe a just-loaded saved session with a null.
         viewModelScope.launch {
+            var previousRoundOver = false
             _state.drop(1).collect { s ->
                 if (s == null || s.isRoundOver) {
                     SessionStore.write(SESSION_KEY, null)
@@ -78,7 +93,41 @@ class GameViewModel(
                         ),
                     )
                 }
+                // First transition into round-over → write history + check
+                // for newly-unlocked achievements.
+                val nowRoundOver = s?.isRoundOver == true
+                if (nowRoundOver && !previousRoundOver) {
+                    recordRoundEnd(s)
+                }
+                previousRoundOver = nowRoundOver
             }
+        }
+    }
+
+    /** Write the completed round to [history] + re-evaluate achievements. */
+    private fun recordRoundEnd(s: com.vivek.unosimple.engine.models.GameState) {
+        val winner = s.players.find { it.id == s.winnerId } ?: return
+        val delta = s.players.filter { it.id != s.winnerId }.sumOf { it.handScore }
+        val botNames = s.players
+            .filter { it.id != humanPlayerId }
+            .map { it.name }
+        val record = RoundRecord(
+            endedAtMs = nowEpochMs(),
+            seats = s.players.map { it.id },
+            names = s.players.map { it.name },
+            winnerId = winner.id,
+            winnerName = winner.name,
+            deltaPoints = delta,
+            cumulativeScores = s.players.map { it.score },
+            humanWon = humanPlayerId != null && winner.id == humanPlayerId,
+            botNames = botNames,
+        )
+        history.append(record)
+        humanPlayerId?.let { hid ->
+            val all = history.records.value
+            val knownPersonas = BOTS.map { it.name }.toSet()
+            val newly = achievements.recordRound(all, hid, knownPersonas)
+            if (newly.isNotEmpty()) _recentUnlocks.value = newly
         }
     }
 
@@ -254,6 +303,15 @@ class GameViewModel(
          * matches the time it takes to read the action banner.
          */
         const val DEFAULT_BOT_TURN_DELAY_MS: Long = 1400L
+
+        /**
+         * Placeholder wall-clock. Kotlin stdlib has no common
+         * `currentTimeMillis` without kotlinx-datetime, which we haven't
+         * pulled in. For v1 history records we write 0 — ordering comes
+         * from the append-only list position, which is all the Stats
+         * screen needs today. Phase 6 can add an expect/actual clock.
+         */
+        private fun nowEpochMs(): Long = 0L
 
         /**
          * Explicit factory so `viewModel(factory = GameViewModel.Factory)`

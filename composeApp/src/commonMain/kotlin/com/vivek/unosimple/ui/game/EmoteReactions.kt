@@ -89,28 +89,28 @@ internal fun EmoteCorner(modifier: Modifier = Modifier) {
         }
     }
 
-    Box(modifier = modifier, contentAlignment = Alignment.CenterStart) {
-        // Palette — slides out to the right of the toggle.
+    Box(modifier = modifier, contentAlignment = Alignment.CenterEnd) {
+        // Palette — slides out to the LEFT of the toggle (button is pinned
+        // to the right edge of the screen).
         AnimatedVisibility(
             visible = open,
             enter = fadeIn(tween(140)) + slideInHorizontally(
                 animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
-                initialOffsetX = { -it / 2 },
+                initialOffsetX = { it / 2 },
             ),
-            exit = fadeOut(tween(140)) + slideOutHorizontally(targetOffsetX = { -it / 2 }),
-            modifier = Modifier.align(Alignment.CenterStart).padding(start = 52.dp),
+            exit = fadeOut(tween(140)) + slideOutHorizontally(targetOffsetX = { it / 2 }),
+            modifier = Modifier.align(Alignment.CenterEnd).padding(end = 52.dp),
         ) {
             EmotePalette(onPick = { r -> active = r; open = false })
         }
 
-        // Active bubble — pops to the right of the toggle, above where the
-        // palette would be, so you can still see your last emote after
-        // picking it.
+        // Active bubble — also pops to the LEFT of the toggle so the user
+        // can still see their last emote after picking it.
         AnimatedVisibility(
             visible = active != null,
             enter = fadeIn(tween(160)) + scaleIn(initialScale = 0.5f),
             exit = fadeOut(tween(240)) + scaleOut(targetScale = 1.3f),
-            modifier = Modifier.align(Alignment.CenterStart).padding(start = 52.dp),
+            modifier = Modifier.align(Alignment.CenterEnd).padding(end = 52.dp),
         ) {
             active?.let { ReactionBubble(it) }
         }
@@ -118,7 +118,7 @@ internal fun EmoteCorner(modifier: Modifier = Modifier) {
         // 😊-style toggle itself — small round button with a smile icon.
         Box(
             modifier = Modifier
-                .align(Alignment.CenterStart)
+                .align(Alignment.CenterEnd)
                 .size(44.dp)
                 .clip(CircleShape)
                 .background(MaterialTheme.colorScheme.surface)

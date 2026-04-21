@@ -49,6 +49,7 @@ fun ProfileScreen(
     profile: ProfileRepository,
     onBack: () -> Unit,
     onPickAvatar: () -> Unit = {},
+    onOpenStats: () -> Unit = {},
 ) {
     val current by profile.profile.collectAsState()
     var editing by remember { mutableStateOf(current.displayName) }
@@ -180,7 +181,36 @@ fun ProfileScreen(
                     }
                 }
 
-                Spacer(Modifier.height(36.dp))
+                Spacer(Modifier.height(24.dp))
+
+                // Stats entry — big amber card linking to the dashboard.
+                ClaySurface(
+                    modifier = Modifier.fillMaxWidth().clickable(onClick = onOpenStats),
+                    color = MaterialTheme.colorScheme.primary,
+                    cornerRadius = 14.dp,
+                    elevation = 8.dp,
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 14.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(
+                            "STATS & ACHIEVEMENTS",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Black,
+                            color = MaterialTheme.colorScheme.onPrimary,
+                        )
+                        Text(
+                            "VIEW \u203A",
+                            style = MaterialTheme.typography.labelLarge,
+                            fontWeight = FontWeight.Black,
+                            color = MaterialTheme.colorScheme.onPrimary,
+                        )
+                    }
+                }
+
+                Spacer(Modifier.height(20.dp))
 
                 ClayButton(
                     onClick = {

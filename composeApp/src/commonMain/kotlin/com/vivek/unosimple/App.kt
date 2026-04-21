@@ -23,6 +23,9 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModelStore
 import androidx.lifecycle.ViewModelStoreOwner
 import androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner
+import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.lifecycle.viewmodel.initializer
+import androidx.lifecycle.viewmodel.viewModelFactory
 import com.vivek.unosimple.audio.LocalAudio
 import com.vivek.unosimple.audio.createAudioService
 import com.vivek.unosimple.multiplayer.PlayerSeat
@@ -130,6 +133,17 @@ fun App(
                 // Profile (local UUID + display name), shared across online
                 // lobby + profile-edit screen. Survives reloads via localStorage.
                 val profile = remember { com.vivek.unosimple.profile.ProfileRepository() }
+                // Shared history + achievements repos so every GameViewModel
+                // writes into the same stores.
+                val history = remember { com.vivek.unosimple.persistence.HistoryRepository() }
+                val achievements = remember { com.vivek.unosimple.persistence.AchievementRepository() }
+                val gameVmFactory = remember(history, achievements) {
+                    viewModelFactory {
+                        initializer {
+                            GameViewModel(history = history, achievements = achievements)
+                        }
+                    }
+                }
 
                 // Sealed-class navigation. Swap for androidx.navigation.compose
                 // once we grow past a handful of screens. Check storage for an
@@ -187,6 +201,7 @@ fun App(
                         profile = profile,
                         onBack = { screen = Screen.Settings },
                         onPickAvatar = { screen = Screen.AvatarPicker },
+                        onOpenStats = { screen = Screen.Stats },
                     )
                     Screen.Lobby -> LobbyScreen(
                         onStart = { seats -> screen = Screen.Hotseat(seats) },
@@ -211,12 +226,23 @@ fun App(
                         onBackToHome = { screen = Screen.Home },
                         onOpenRules = { screen = Screen.Rules },
                         onOpenSettings = { screen = Screen.Settings },
+                        vm = viewModel(factory = gameVmFactory),
                     )
                     Screen.Rules -> com.vivek.unosimple.ui.rules.RulesScreen(
                         onBack = { screen = Screen.Home },
                     )
                     Screen.About -> com.vivek.unosimple.ui.about.AboutScreen(
                         onBack = { screen = Screen.Settings },
+                    )
+                    Screen.Stats -> com.vivek.unosimple.ui.stats.StatsScreen(
+                        history = history,
+                        humanId = profile.profile.value.uid,
+                        onBack = { screen = Screen.Profile },
+                        onOpenAchievements = { screen = Screen.Achievements },
+                    )
+                    Screen.Achievements -> com.vivek.unosimple.ui.stats.AchievementsScreen(
+                        achievements = achievements,
+                        onBack = { screen = Screen.Stats },
                     )
                     is Screen.Hotseat -> {
                         val vm = remember(s.seats) { HotseatGameViewModel(seats = s.seats) }

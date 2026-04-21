@@ -357,14 +357,15 @@ fun GameScreen(
                 },
             )
         }
-        // Emote corner — small reaction button pinned to the middle of the
-        // left edge, in the dead space between the opponent row and the
-        // human hand. Keeps it away from the card fan entirely.
+        // Emote corner — pinned to the middle of the RIGHT edge. Left mid-
+        // screen holds the draw pile, so the old CenterStart placement
+        // collided. Right mid-screen is genuinely empty (discard pile
+        // centers, nothing is to its right).
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(start = 10.dp),
-            contentAlignment = Alignment.CenterStart,
+                .padding(end = 10.dp),
+            contentAlignment = Alignment.CenterEnd,
         ) {
             EmoteCorner()
         }

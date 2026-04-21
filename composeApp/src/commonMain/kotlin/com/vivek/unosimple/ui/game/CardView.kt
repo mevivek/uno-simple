@@ -95,7 +95,9 @@ fun CardView(
             // White bezel.
             .clip(outerShape)
             .background(Color.White, outerShape)
-            .alpha(if (enabled) 1f else 0.4f)
+            // Disabled cards: keep at 0.72 alpha (was 0.4 — too dim to read)
+            // and layer a dark tint on top in the body below.
+            .alpha(if (enabled) 1f else 0.72f)
             .then(tagModifier)
             .then(clickModifier),
         contentAlignment = Alignment.Center,
@@ -120,6 +122,24 @@ fun CardView(
                 CardFace(card!!)
             } else {
                 CardBack()
+            }
+            // Dark wash on disabled cards — keeps the face color identifiable
+            // (vs the previous 0.4-alpha wash which made everything ghost-
+            // white) but clearly signals "not playable".
+            if (!enabled) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .drawBehind {
+                            val inset = BEZEL_INSET.toPx()
+                            drawRoundRect(
+                                color = Color(0x3A000000),
+                                topLeft = Offset(inset, inset),
+                                size = Size(size.width - inset * 2, size.height - inset * 2),
+                                cornerRadius = CornerRadius((CORNER_RADIUS - BEZEL_INSET).toPx()),
+                            )
+                        },
+                )
             }
         }
     }
