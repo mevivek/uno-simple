@@ -10,5 +10,5 @@ package com.vivek.unosimple
  * same-day deploys.
  */
 object BuildInfo {
-    const val BUILD_STAMP: String = "2026-04-20.12"
+    const val BUILD_STAMP: String = "2026-04-20.13"
 }

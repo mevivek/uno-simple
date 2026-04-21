@@ -64,6 +64,7 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.vivek.unosimple.engine.models.DrawTwoCard
 import com.vivek.unosimple.engine.models.ReverseCard
 import com.vivek.unosimple.engine.models.SkipCard
@@ -202,33 +203,42 @@ fun GameScreen(
             return@Surface
         }
 
-        // Table felt — obsidian base with a subtle speckle texture, a faint
-        // warm spotlight centered on the discard pile, and a vignette that
-        // darkens the screen edges. Reads as "dim arcade lounge" rather
-        // than the old peach-on-cream gradient.
-        val bg = MaterialTheme.colorScheme.background
-        val spotlight = LocalClayTokens.current.tableAccent
+        // Red UNO "felt" — warm red gradient with a brighter spotlight at the
+        // center of the table (where the discard pile sits), and a darker
+        // vignette at the edges. Matches the iOS / Mattel UNO aesthetic.
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .noiseBackground(base = bg, density = 0.45f)
                 .background(
                     Brush.radialGradient(
-                        0f to spotlight.copy(alpha = 0.55f),
-                        0.45f to Color.Transparent,
-                        1f to Color.Transparent,
-                        radius = 700f,
-                    )
-                )
-                .background(
-                    Brush.radialGradient(
-                        0f to Color.Transparent,
-                        0.7f to Color.Transparent,
-                        1f to Color(0xAA000000),
+                        0f to Color(0xFFF37A45),   // bright orange-red at center
+                        0.35f to Color(0xFFD7301C), // mid red
+                        1f to Color(0xFF7A0F0A),    // deep maroon at edges
                         radius = 1200f,
                     )
+                )
+                .noiseBackground(
+                    base = Color.Transparent,
+                    speckleColor = Color.White.copy(alpha = 0.03f),
+                    density = 0.35f,
                 ),
         ) {
+            // Giant "UNO" wordmark embossed behind the discard pile. Low-
+            // alpha so it reads as table decoration, not live info.
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    text = "UNO",
+                    style = MaterialTheme.typography.displayLarge,
+                    color = Color(0x22FFFFFF),
+                    fontWeight = FontWeight.Black,
+                    fontSize = 140.sp,
+                )
+            }
+            // Giant curved amber direction arrow wrapping the discard pile.
+            BigTableDirectionArrow(direction = s.direction)
         Column(
             modifier = Modifier.fillMaxSize().padding(16.dp),
             verticalArrangement = Arrangement.SpaceBetween,
