@@ -16,6 +16,80 @@ Entry template:
 
 ---
 
+## 2026-04-20 — Premium arcade UI/UX revamp (builds .01 → .28)
+**Phase:** end of the six-phase revamp from [.claude/plans/can-you-plan-a-keen-firefly.md](../.claude/plans/can-you-plan-a-keen-firefly.md). Everything except Medium/Expanded adaptive layouts shipped.
+
+**Summary of the 24 deploys (2026-04-20.05 → .28):**
+
+### Phase 1 — foundation
+- Dark arcade theme rewrite (obsidian + midnight + amber + coral + neon + sky + violet) replacing the claymorph/cream palette
+- Typography: Bungee (chunky arcade display) + Inter (body), OFL, bundled as Compose Resources
+- `ClaySurface` / `ClayButton` repainted dark + rim-highlight; new `GhostButton`
+- Motion primitives: `ShakeController`, `FlashController`, `Modifier.noiseBackground`
+- `WebAudioService` on Wasm — synthesized SFX (card slap, UNO triad, win arpeggio, draw tick, penalty saw) via `AudioContext` oscillators and `@JsFun` interop. Muted state follows Settings toggle.
+- Home + Settings reskinned; persona tiles + amber PLAY slab + ghost mode row
+
+### Phase 2 + 2.5 — game surface
+- Red UNO felt (radial orange-red → maroon + subtle noise speckle) + 140sp embossed UNO wordmark behind the discard
+- Authentic Mattel-style `CardView`: flat saturated face + tilted white oval + huge italic glyph + mini corner glyphs, red card back with italic UNO wordmark
+- `BigTableDirectionArrow` — chunky 260° amber arc with triangle arrowhead
+- Screen flash on Wild +4 land (white) / +2 land (coral), opponent-tile shake on penalty stacks
+- Denser 140-particle celebration in arcade palette
+- `CallUnoDisc` — floating red disc bottom-right, pulses when eligible, OK state when declared
+- `EmoteCorner` + Canvas-drawn reaction icons (smile / shock / clap / fire / think / party) replacing broken Unicode emojis
+- Hotseat + PassDeviceOverlay polished
+
+### Phase 3 — identity
+- `Screen.Splash` / `Onboarding` / `AvatarPicker` added
+- 1.4s brand splash: fan of 4 cards + "UNO SIMPLE" type-in
+- Onboarding: name + avatar live preview + LET'S PLAY
+- Profile + AvatarPicker (3×3 persona grid) linked from Settings / ACCOUNT
+- `UserProfile` extended with `avatarId` + `hasSeenTutorial`
+- Hidden Geet easter egg — typing "Geet" / "Gitanjali" triggers pink hearts rain overlay + auto-selects the private persona + shows "made with ❤ for you"
+- Home also shows the coral "made with ❤ for you" line when the current profile is Geet
+- "made with ❤ for geet" quiet credit line in About
+
+### Phase 4 — info screens
+- Rules screen: scrollable reference with live `CardView` demos for each action card + scoring section
+- Full-screen `PauseOverlay` — Resume / How to play / Settings / Quit; menu icon now opens pause instead of quitting; `GameViewModel.pause()` / `resume()` gate the bot coroutine
+- About screen: version, build stamp, tech stack, OFL credits, repo + deploy URLs
+
+### Phase 5 — progress + celebration
+- `HistoryRepository` — append-only `RoundRecord` log with per-record delete + `stats(humanId)` aggregate
+- `AchievementRepository` + `Achievement` sealed enum (7 badges) in `:shared` — evaluated on every round-end, newly-unlocked set exposed via `GameViewModel.recentUnlocks`
+- Stats screen: Canvas win-rate ring, streak / best / big-win chips, opponents-faced panel
+- Achievements screen: 2-column grid of Canvas gold star medals (locked = slate)
+- Round result fully redesigned: full-screen, staggered row entries, gold/silver/bronze Canvas medals, hand-reveal (losers' remaining cards shown face-up), achievement-unlocked banner, NEXT ROUND + BACK TO HOME CTAs
+
+### Phase 6 — online + operability
+- `ConnectionBadge` on `.info/connected` (real websocket state — wasm + non-wasm); "LIVE" / "RECONNECTING" / "OFFLINE" with pulsing amber dot
+- Online waiting room: big digit-boxes for room code with tap-to-copy, seat-count header, pulsing "WAITING FOR HOST", self-seat amber-highlighted with (YOU) label
+- `EmoteFeed` + broadcasting via `GameSyncService.emoteEvents` + `broadcastEmote()`. Implemented on InProcess (hotseat), Wasm Firebase (single-slot `/rooms/{code}/latestEmote` with random nonce so repeats fire), and non-wasm Firebase.
+- `users/{uid}/displayName` + `users/{uid}/avatarId` mirror written on joinSeat — Firebase console now shows a `users/` tree populated by actual play.
+- `PlayerSeat` gained optional `avatarId`; `App.kt` threads profile.avatarId into the seat on online join.
+- OnlineGameScreen active play gained the full solo overlay stack (red felt + flight + flash + SFX + CALL UNO disc + direction arrow).
+- Reusable `EmptyState` / `ErrorPanel` / `LoadingPanel` composables for graceful empty / failure surfaces.
+
+### Out-of-plan niceties that landed
+- Back-stack navigation (`App.kt` maintains a `mutableListOf<Screen>` + `pushTo` / `goBack` helpers) — every back returns to the real previous screen instead of a hardcoded target; Settings / Rules / About / Stats / Achievements navigation is context-correct everywhere.
+- `/admin` URL deep-links into an admin panel listing users + game sessions + history with per-row + bulk delete; two-tap-to-confirm on every destructive button. Invisible from any menu path.
+- Fixed Mattel trademark rule in `CLAUDE.md` (rescinded — app is strictly personal-device).
+- Z-order fix on Settings / About / Rules / Stats / Achievements — back button moved to the end of the outer Box so the scrolling Column doesn't swallow pointer taps.
+- Reverse card glyph + big table arrow geometry rewrites (the arrowhead was off-by-90° for CCW; fixed).
+- GitHub: repo made public at [github.com/mevivek/uno-simple](https://github.com/mevivek/uno-simple), history orphan-commit-rewritten to scrub work-related context from [.claude/memory/](.claude/memory).
+
+**Next up:**
+- Adaptive Medium/Expanded layouts (tablet + landscape phone ring-of-opponents) — deferred per user.
+- F2 friends (friend codes, add-friend, friend list, invite-to-room).
+- Real asset-backed audio on Android/iOS (deferred — needs WAV files).
+
+**Notes:**
+- Firebase RTDB rules are still in default test mode (public read/write) — fine for private friend groups, should be hardened before any real public play.
+- Wasm Firebase stores seats + state as opaque JSON strings (side effect of `unoDbSet` taking a string) — functionally correct but ugly in the Firebase console. Users node writes as proper sub-paths.
+- Every destructive admin action uses two-tap confirmation; there's no hidden "are you sure" modal layer that needs maintenance.
+
+---
+
 ## 2026-04-19 (part 8) — Firebase online multiplayer fully wired
 **Phases:** 5+. Online multiplayer is now live on Android / iOS / Desktop (Wasm gracefully unsupported for now).
 **Done:**
