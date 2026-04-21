@@ -298,6 +298,28 @@ fun GameScreen(
         RoundOverPodium(state = s, onNewRound = { vm.startGame(botCount) })
         CardFlightOverlay(controller = flight)
         FlashOverlay(controller = flash)
+
+        // Floating CALL UNO disc anchored bottom-right, above every game
+        // layer. Only actionable while the human has exactly 2 cards on
+        // their own turn and the round is still live.
+        val canDeclareUno = s.currentPlayer.id == humanId &&
+            s.players.find { it.id == humanId }?.handSize == 2 &&
+            !s.isRoundOver
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(end = 18.dp, bottom = 130.dp),
+            contentAlignment = Alignment.BottomEnd,
+        ) {
+            CallUnoDisc(
+                visible = canDeclareUno,
+                declared = unoDeclared,
+                onTap = {
+                    unoDeclared = true
+                    audio.play(SoundEffect.UNO_CALL)
+                },
+            )
+        }
         } // close radial-felt Box
     }
     } // close CompositionLocalProvider
@@ -1018,41 +1040,10 @@ internal fun HumanHand(
                     }
                 }
             }
-            if (canDeclareUno) {
-                // Pulse the button while the declaration is still open so the
-                // player doesn't miss it. Once they tap, the animation stops.
-                val pulse by rememberInfiniteTransition(label = "uno-pulse").animateFloat(
-                    initialValue = 1f,
-                    targetValue = 1.08f,
-                    animationSpec = infiniteRepeatable(
-                        animation = tween(durationMillis = 520, easing = FastOutSlowInEasing),
-                        repeatMode = RepeatMode.Reverse,
-                    ),
-                    label = "uno-pulse-scale",
-                )
-                val scaleFactor = if (unoDeclared) 1f else pulse
-                Button(
-                    onClick = onDeclareUno,
-                    enabled = !unoDeclared,
-                    modifier = Modifier
-                        .scale(scaleFactor)
-                        .testTag(TestTags.UNO_BUTTON),
-                    shape = RoundedCornerShape(50),
-                    colors = if (unoDeclared) {
-                        ButtonDefaults.filledTonalButtonColors()
-                    } else {
-                        ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.tertiary,
-                        )
-                    },
-                    contentPadding = PaddingValues(horizontal = 20.dp, vertical = 6.dp),
-                ) {
-                    Text(
-                        text = if (unoDeclared) "UNO declared" else "UNO!",
-                        fontWeight = FontWeight.Black,
-                    )
-                }
-            }
+            // Inline UNO button removed — the floating CallUnoDisc bottom-
+            // right of the screen is the declaration CTA now. `canDeclareUno`
+            // signaling stays here so we can one-day nudge the hand-size
+            // pill when declaration is available.
         }
         // FlowRow wraps cards onto a second row when they overflow. Within a
         // row each card fans with a subtle rotation + y-lift (more for cards
