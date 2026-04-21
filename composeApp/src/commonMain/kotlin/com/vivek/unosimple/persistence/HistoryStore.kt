@@ -79,6 +79,14 @@ class HistoryRepository {
         SessionStore.write(KEY, null)
     }
 
+    /** Remove a single record by list index. No-op if out-of-range. */
+    fun removeAt(index: Int) {
+        val current = _records.value
+        if (index !in current.indices) return
+        _records.value = current.toMutableList().also { it.removeAt(index) }
+        persist()
+    }
+
     /** Derived aggregate for the Stats screen. */
     fun stats(humanId: String): HistoryStats {
         val all = _records.value
