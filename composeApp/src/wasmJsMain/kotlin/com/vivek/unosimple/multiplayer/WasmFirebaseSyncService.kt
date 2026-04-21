@@ -81,6 +81,9 @@ class WasmFirebaseSyncService(
     )
     override val emoteEvents: SharedFlow<EmoteEvent> = _emotes.asSharedFlow()
 
+    private val _connectionState = MutableStateFlow(ConnectionState.Connected)
+    override val connectionState: StateFlow<ConnectionState> = _connectionState.asStateFlow()
+
     /**
      * Flips true after the seats subscription has fired at least once.
      * `joinSeat` waits on this before writing so we don't clobber the
@@ -95,6 +98,7 @@ class WasmFirebaseSyncService(
     private val stateSubscriptionHandle: Int
     private val seatsSubscriptionHandle: Int
     private val emoteSubscriptionHandle: Int
+    private val connectedSubscriptionHandle: Int
 
     init {
         // Subscribe immediately so state/seats populate as soon as Firebase
@@ -123,6 +127,17 @@ class WasmFirebaseSyncService(
             // tryEmit so the onValue callback (called from JS main thread)
             // never suspends waiting for a subscriber.
             _emotes.tryEmit(EmoteEvent(senderId = payload.senderId, reaction = payload.reaction))
+        }
+        // Firebase's special `.info/connected` path emits a boolean when
+        // the SDK's websocket flips online / offline. Lets us drive the
+        // ConnectionBadge from the real network state instead of a
+        // hardcoded "Connected".
+        connectedSubscriptionHandle = unoDbSubscribe(".info/connected") { raw ->
+            _connectionState.value = when (raw) {
+                "true" -> ConnectionState.Connected
+                "false" -> ConnectionState.Reconnecting
+                else -> _connectionState.value // unknown / initial — leave as-is
+            }
         }
     }
 
@@ -200,6 +215,7 @@ class WasmFirebaseSyncService(
             unoDbUnsubscribe(stateSubscriptionHandle)
             unoDbUnsubscribe(seatsSubscriptionHandle)
             unoDbUnsubscribe(emoteSubscriptionHandle)
+            unoDbUnsubscribe(connectedSubscriptionHandle)
         }
         scope.cancel()
     }

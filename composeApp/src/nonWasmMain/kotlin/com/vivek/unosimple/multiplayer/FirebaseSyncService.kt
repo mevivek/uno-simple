@@ -78,6 +78,9 @@ class FirebaseSyncService(
     )
     override val emoteEvents: SharedFlow<EmoteEvent> = _emotes.asSharedFlow()
 
+    private val _connectionState = MutableStateFlow(ConnectionState.Connected)
+    override val connectionState: StateFlow<ConnectionState> = _connectionState.asStateFlow()
+
     /**
      * Flips true after the seats snapshot has fired at least once. `joinSeat`
      * waits on this so we don't clobber an existing seat list with a merge
@@ -113,6 +116,15 @@ class FirebaseSyncService(
                     snapshot.value<LatestEmotePayload?>()
                 }.getOrNull() ?: return@collect
                 _emotes.tryEmit(EmoteEvent(senderId = payload.senderId, reaction = payload.reaction))
+            }
+        }
+        // `.info/connected` is a Firebase-special boolean ref that flips
+        // when the SDK's websocket reconnects. Drives the ConnectionBadge.
+        scope.launch {
+            database.reference(".info/connected").valueEvents.collect { snapshot ->
+                val connected = runCatching { snapshot.value<Boolean?>() }.getOrNull() ?: return@collect
+                _connectionState.value =
+                    if (connected) ConnectionState.Connected else ConnectionState.Reconnecting
             }
         }
     }
