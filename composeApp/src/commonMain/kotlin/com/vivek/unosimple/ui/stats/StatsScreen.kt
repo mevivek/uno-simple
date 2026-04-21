@@ -61,19 +61,6 @@ fun StatsScreen(
         color = MaterialTheme.colorScheme.background,
     ) {
         Box(modifier = Modifier.fillMaxSize()) {
-            Box(
-                modifier = Modifier
-                    .align(Alignment.TopStart)
-                    .padding(16.dp)
-                    .size(40.dp)
-                    .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.surface)
-                    .clickable(onClick = onBack),
-                contentAlignment = Alignment.Center,
-            ) {
-                BackIcon(size = 20.dp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-
             Column(
                 modifier = Modifier
                     .fillMaxSize()
@@ -172,6 +159,18 @@ fun StatsScreen(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
+            }
+            Box(
+                modifier = Modifier
+                    .align(Alignment.TopStart)
+                    .padding(16.dp)
+                    .size(40.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.surface)
+                    .clickable(onClick = onBack),
+                contentAlignment = Alignment.Center,
+            ) {
+                BackIcon(size = 20.dp, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
     }

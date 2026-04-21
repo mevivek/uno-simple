@@ -152,10 +152,15 @@ fun App(
                 // back to Home. `botCount` is a rough placeholder; GameScreen
                 // reads the real count from the saved state.
                 var screen: Screen by remember {
-                    // Cold-launch routing: Splash → Onboarding (first run) →
-                    // Home. Tests pass overrideInitialScreen = Screen.Home
-                    // to skip the splash animation.
-                    mutableStateOf<Screen>(overrideInitialScreen ?: Screen.Splash)
+                    // Cold-launch routing:
+                    //   - Tests pass overrideInitialScreen = Screen.Home
+                    //   - Wasm: if the URL path is /admin, deep-link there
+                    //   - Otherwise → Splash → Onboarding (first run) / Home
+                    val initial: Screen = overrideInitialScreen
+                        ?: if (com.vivek.unosimple.platform.currentUrlPath().trim('/').equals("admin", ignoreCase = true)) {
+                            Screen.Admin
+                        } else Screen.Splash
+                    mutableStateOf<Screen>(initial)
                 }
                 // Back-stack — push on forward nav, pop on back. Keeps
                 // "back" context-correct (e.g. Settings → Rules → back
@@ -200,13 +205,17 @@ fun App(
                         profile = profile,
                         onBack = { goBack(Screen.Profile) },
                     )
-                    Screen.Home -> HomeScreen(
-                        onStartGame = { botCount -> pushTo(Screen.Game(botCount)) },
-                        onOpenSettings = { pushTo(Screen.Settings) },
-                        onOpenLobby = { pushTo(Screen.Lobby) },
-                        onOpenOnlineLobby = { pushTo(Screen.OnlineLobby) },
-                        firebaseAvailable = firebaseSupported,
-                    )
+                    Screen.Home -> {
+                        val profileState by profile.profile.collectAsState()
+                        HomeScreen(
+                            onStartGame = { botCount -> pushTo(Screen.Game(botCount)) },
+                            onOpenSettings = { pushTo(Screen.Settings) },
+                            onOpenLobby = { pushTo(Screen.Lobby) },
+                            onOpenOnlineLobby = { pushTo(Screen.OnlineLobby) },
+                            firebaseAvailable = firebaseSupported,
+                            currentName = profileState.displayName,
+                        )
+                    }
                     Screen.Settings -> SettingsScreen(
                         settings = settings,
                         onOpenProfile = { pushTo(Screen.Profile) },
@@ -266,6 +275,15 @@ fun App(
                     Screen.Achievements -> com.vivek.unosimple.ui.stats.AchievementsScreen(
                         achievements = achievements,
                         onBack = { goBack(Screen.Stats) },
+                    )
+                    Screen.Admin -> com.vivek.unosimple.ui.admin.AdminScreen(
+                        profile = profile,
+                        history = history,
+                        achievements = achievements,
+                        onBack = {
+                            backStack.clear()
+                            screen = Screen.Home
+                        },
                     )
                     is Screen.Hotseat -> {
                         val vm = remember(s.seats) { HotseatGameViewModel(seats = s.seats) }

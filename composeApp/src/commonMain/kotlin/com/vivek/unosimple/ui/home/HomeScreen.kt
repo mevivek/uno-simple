@@ -53,8 +53,11 @@ fun HomeScreen(
     onOpenLobby: () -> Unit = {},
     onOpenOnlineLobby: () -> Unit = {},
     firebaseAvailable: Boolean = true,
+    /** Display name of the current user, used for the Geet welcome banner. */
+    currentName: String = "",
 ) {
     var botCount by rememberSaveable { mutableStateOf(2) }
+    val isGeet = com.vivek.unosimple.ui.game.isGeetName(currentName)
 
     Surface(
         modifier = Modifier.fillMaxSize().testTag(TestTags.HOME_SCREEN),
@@ -91,11 +94,21 @@ fun HomeScreen(
                 HeroTitle()
 
                 Spacer(Modifier.height(4.dp))
-                Text(
-                    text = "Saturday-night card battles",
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
+                if (isGeet) {
+                    // Geet-only welcome line. Coral, centered.
+                    Text(
+                        text = "made with \u2764 for you",
+                        style = MaterialTheme.typography.labelLarge,
+                        color = Color(0xFFFF5168),
+                        fontWeight = FontWeight.Black,
+                    )
+                } else {
+                    Text(
+                        text = "Saturday-night card battles",
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
 
                 Spacer(Modifier.height(36.dp))
 
