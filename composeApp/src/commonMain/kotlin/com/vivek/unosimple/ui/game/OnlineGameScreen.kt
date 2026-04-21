@@ -43,6 +43,7 @@ import com.vivek.unosimple.engine.models.isWild
 import com.vivek.unosimple.multiplayer.GameSyncService
 import com.vivek.unosimple.multiplayer.PlayerSeat
 import com.vivek.unosimple.viewmodel.OnlineGameViewModel
+import kotlinx.coroutines.launch
 
 /**
  * Online multiplayer game surface. Each player runs this on their own
@@ -63,6 +64,7 @@ fun OnlineGameScreen(
     val state by vm.state.collectAsState()
     val players by vm.sync.players.collectAsState()
     val connectionState by vm.sync.connectionState.collectAsState()
+    val scope = androidx.compose.runtime.rememberCoroutineScope()
 
     Surface(
         modifier = Modifier.fillMaxSize(),
@@ -137,6 +139,25 @@ fun OnlineGameScreen(
             contentAlignment = Alignment.TopEnd,
         ) {
             com.vivek.unosimple.ui.common.ConnectionBadge(state = connectionState)
+        }
+
+        // Emote feed — incoming reactions from every player in the room
+        // render as transient chat bubbles stacked near the top.
+        Box(
+            modifier = Modifier.fillMaxSize().padding(top = 50.dp),
+            contentAlignment = Alignment.TopCenter,
+        ) {
+            EmoteFeed(events = vm.sync.emoteEvents, players = players)
+        }
+
+        // Self-emote corner — right-middle, broadcasts to the room.
+        Box(
+            modifier = Modifier.fillMaxSize().padding(end = 10.dp),
+            contentAlignment = Alignment.CenterEnd,
+        ) {
+            EmoteCorner(onBroadcast = { reaction ->
+                scope.launch { vm.sync.broadcastEmote(reaction.name) }
+            })
         }
 
         pendingWild?.let { card ->

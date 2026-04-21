@@ -76,9 +76,16 @@ internal val REACTIONS: List<Reaction> = Reaction.entries.toList()
 /**
  * Bottom/top-left corner holding the palette toggle + the active bubble.
  * Caller positions this; the composable itself wraps its content.
+ *
+ * @param onBroadcast callback invoked when the user picks a reaction — in
+ *   online + hotseat contexts this forwards the emote to GameSyncService;
+ *   in solo-vs-bots it's a no-op (default).
  */
 @Composable
-internal fun EmoteCorner(modifier: Modifier = Modifier) {
+internal fun EmoteCorner(
+    modifier: Modifier = Modifier,
+    onBroadcast: (Reaction) -> Unit = {},
+) {
     var open by remember { mutableStateOf(false) }
     var active: Reaction? by remember { mutableStateOf(null) }
 
@@ -101,7 +108,11 @@ internal fun EmoteCorner(modifier: Modifier = Modifier) {
             exit = fadeOut(tween(140)) + slideOutHorizontally(targetOffsetX = { it / 2 }),
             modifier = Modifier.align(Alignment.CenterEnd).padding(end = 52.dp),
         ) {
-            EmotePalette(onPick = { r -> active = r; open = false })
+            EmotePalette(onPick = { r ->
+                active = r
+                open = false
+                onBroadcast(r)
+            })
         }
 
         // Active bubble — also pops to the LEFT of the toggle so the user

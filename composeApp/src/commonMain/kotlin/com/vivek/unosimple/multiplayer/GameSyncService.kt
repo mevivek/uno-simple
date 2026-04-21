@@ -2,6 +2,8 @@ package com.vivek.unosimple.multiplayer
 
 import com.vivek.unosimple.engine.models.GameAction
 import com.vivek.unosimple.engine.models.GameState
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 
 /**
@@ -73,7 +75,27 @@ interface GameSyncService {
 
     /** Leave the room; disconnects from further state updates. */
     suspend fun leave()
+
+    /**
+     * Transient emote events (😊 / 🔥 / etc.) broadcast by any client in the
+     * room. UI subscribes and fades a bubble at the sender's seat for a
+     * couple seconds. Default = a silent SharedFlow for implementations
+     * that don't care (e.g. solo-only surfaces).
+     */
+    val emoteEvents: SharedFlow<EmoteEvent>
+        get() = MutableSharedFlow()
+
+    /**
+     * Broadcast an emote from this client. Implementations emit an
+     * [EmoteEvent] on [emoteEvents] for every connected client (including
+     * the sender, for optimistic local echo).
+     */
+    suspend fun broadcastEmote(reaction: String) { /* default no-op */ }
 }
+
+/** Transient emote tag sent from [sender] (a [PlayerSeat.id]). */
+@kotlinx.serialization.Serializable
+data class EmoteEvent(val senderId: String, val reaction: String)
 
 @kotlinx.serialization.Serializable
 data class PlayerSeat(val id: String, val displayName: String)

@@ -5,8 +5,11 @@ import com.vivek.unosimple.engine.Engine
 import com.vivek.unosimple.engine.models.GameAction
 import com.vivek.unosimple.engine.models.GameState
 import com.vivek.unosimple.engine.newRound
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -38,6 +41,11 @@ class InProcessSyncService private constructor(
 
     override val state: StateFlow<GameState?> = shared.stateInternal.asStateFlow()
     override val players: StateFlow<List<PlayerSeat>> = shared.playersInternal.asStateFlow()
+    override val emoteEvents: SharedFlow<EmoteEvent> = shared.emotesInternal.asSharedFlow()
+
+    override suspend fun broadcastEmote(reaction: String) {
+        shared.emotesInternal.emit(EmoteEvent(senderId = myId, reaction = reaction))
+    }
 
     override suspend fun joinSeat(seat: PlayerSeat) {
         shared.joinSeat(seat)
@@ -65,6 +73,12 @@ class InProcessSyncService private constructor(
     ) {
         internal val stateInternal = MutableStateFlow<GameState?>(null)
         internal val playersInternal = MutableStateFlow<List<PlayerSeat>>(emptyList())
+        /**
+         * Transient emote bus. `extraBufferCapacity = 8` so a burst of
+         * simultaneous reactions doesn't suspend the sender.
+         */
+        internal val emotesInternal: MutableSharedFlow<EmoteEvent> =
+            MutableSharedFlow(extraBufferCapacity = 8)
 
         /**
          * Serialize all submits through a mutex so concurrent callers can't
