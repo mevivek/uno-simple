@@ -330,12 +330,14 @@ fun GameScreen(
                 },
             )
         }
-        // Emote corner — 😊 button bottom-left with a small palette + bubble.
+        // Emote corner — small reaction button pinned to the middle of the
+        // left edge, in the dead space between the opponent row and the
+        // human hand. Keeps it away from the card fan entirely.
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(start = 16.dp, bottom = 130.dp),
-            contentAlignment = Alignment.BottomStart,
+                .padding(start = 10.dp),
+            contentAlignment = Alignment.CenterStart,
         ) {
             EmoteCorner()
         }
