@@ -34,7 +34,7 @@ internal enum class Accessory { NONE, BOLT, HEART_CHEEKS, SPOT }
 
 internal val BOTS: List<BotPersona> = listOf(
     BotPersona(
-        name = "Rosie",
+        name = "Mochi",
         faceColor = Color(0xFFFFE4CF),          // cream cat
         earColor = Color(0xFFFFB3C1),
         earShape = EarShape.POINTY,
@@ -123,7 +123,26 @@ internal val BOTS: List<BotPersona> = listOf(
         blush = false,
         accessory = Accessory.NONE,
     ),
+    // Hidden 10th persona — "Geet". Only shows up in the avatar picker
+    // when the Geet easter egg is unlocked (user enters her name in
+    // onboarding / profile). A small private surprise.
+    BotPersona(
+        name = "Geet",
+        faceColor = Color(0xFFFFD2E4),          // soft pink
+        earColor = Color(0xFFE5596C),           // coral-pink bow
+        earShape = EarShape.ROUND,
+        eyeStyle = EyeStyle.WINK,
+        mouth = Mouth.SMILE,
+        blush = true,
+        accessory = Accessory.HEART_CHEEKS,
+    ),
 )
+
+/** Case-insensitive check for the "Geet" easter egg in the user's display name. */
+internal fun isGeetName(name: String): Boolean {
+    val n = name.trim().lowercase()
+    return n == "geet" || n == "gitanjali"
+}
 
 /**
  * Deterministic mapping from a bot seat id to a [BotPersona]. IDs follow

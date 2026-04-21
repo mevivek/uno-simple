@@ -39,9 +39,13 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.vivek.unosimple.profile.ProfileRepository
 import com.vivek.unosimple.ui.game.BOTS
+import com.vivek.unosimple.ui.game.HeartsRainOverlay
 import com.vivek.unosimple.ui.game.PlayerAvatar
+import com.vivek.unosimple.ui.game.isGeetName
 import com.vivek.unosimple.ui.theme.ClayButton
 import com.vivek.unosimple.ui.theme.LocalClayTokens
+import kotlinx.coroutines.delay
+import androidx.compose.runtime.LaunchedEffect
 
 /**
  * Two-step onboarding for first-run users: name + avatar pick on one
@@ -60,6 +64,19 @@ fun OnboardingScreen(
     val current by profile.profile.collectAsState()
     var name by remember { mutableStateOf(current.displayName.ifBlank { "" }) }
     var avatarId: String? by remember { mutableStateOf(current.avatarId ?: "bot1") }
+
+    // Easter egg: when the user types Geet's name, rain pink hearts for
+    // ~3.8s and auto-pick the "Geet" persona as their avatar. Private
+    // surprise — no label tells the user this is a thing.
+    var heartsRaining by remember { mutableStateOf(false) }
+    LaunchedEffect(name) {
+        if (isGeetName(name)) {
+            heartsRaining = true
+            avatarId = "bot10" // the hidden Geet persona
+            delay(3800)
+            heartsRaining = false
+        }
+    }
 
     Surface(
         modifier = Modifier.fillMaxSize().testTag("onboarding_screen"),
@@ -133,7 +150,9 @@ fun OnboardingScreen(
                         .padding(horizontal = 4.dp),
                     horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterHorizontally),
                 ) {
-                    for (i in BOTS.indices) {
+                    // First 9 personas only — index 9 ("Geet") is a private
+                    // easter-egg avatar unlocked by typing her name.
+                    for (i in 0 until 9.coerceAtMost(BOTS.size)) {
                         val id = "bot${i + 1}"
                         MiniAvatarTile(
                             avatarId = id,
@@ -145,6 +164,18 @@ fun OnboardingScreen(
                 }
 
                 Spacer(Modifier.weight(1f))
+
+                // Small hint text that only shows when the easter egg fires —
+                // so "Geet" knows this was intentional.
+                if (heartsRaining) {
+                    Spacer(Modifier.height(6.dp))
+                    Text(
+                        "made with \u2764 for you",
+                        style = MaterialTheme.typography.labelLarge,
+                        color = androidx.compose.ui.graphics.Color(0xFFFF5168),
+                        fontWeight = FontWeight.Black,
+                    )
+                }
 
                 ClayButton(
                     onClick = {
@@ -168,6 +199,8 @@ fun OnboardingScreen(
                     )
                 }
             }
+            // Easter egg overlay — hearts fall over the whole screen.
+            HeartsRainOverlay(visible = heartsRaining)
         }
     }
 }

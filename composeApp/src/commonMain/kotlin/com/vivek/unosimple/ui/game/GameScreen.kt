@@ -310,7 +310,16 @@ fun GameScreen(
 
         EffectSpotlight(state = s)
         CelebrationOverlay(visible = s.isRoundOver)
-        RoundOverPodium(state = s, onNewRound = { vm.startGame(botCount) })
+        val recentUnlocks by vm.recentUnlocks.collectAsState()
+        RoundOverPodium(
+            state = s,
+            onNewRound = { vm.startGame(botCount) },
+            onBackToHome = {
+                vm.clear()
+                onBackToHome()
+            },
+            newUnlocks = recentUnlocks,
+        )
         CardFlightOverlay(controller = flight)
         FlashOverlay(controller = flash)
 

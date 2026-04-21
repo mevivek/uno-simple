@@ -102,6 +102,16 @@ fun AboutScreen(onBack: () -> Unit) {
                     AboutLine("Deployed at uno-simple-5757a3.web.app")
                 }
 
+                Spacer(Modifier.height(20.dp))
+
+                // Private dedication line. Small + coral + centered.
+                Text(
+                    "made with \u2764 for geet",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = androidx.compose.ui.graphics.Color(0xFFFF5168),
+                    fontWeight = FontWeight.Black,
+                )
+
                 Spacer(Modifier.height(32.dp))
             }
         }
