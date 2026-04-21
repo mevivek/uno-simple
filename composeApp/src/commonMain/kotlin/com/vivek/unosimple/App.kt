@@ -179,6 +179,8 @@ fun App(
                     Screen.Settings -> SettingsScreen(
                         settings = settings,
                         onOpenProfile = { screen = Screen.Profile },
+                        onOpenRules = { screen = Screen.Rules },
+                        onOpenAbout = { screen = Screen.About },
                         onDone = { screen = Screen.Home },
                     )
                     Screen.Profile -> com.vivek.unosimple.ui.profile.ProfileScreen(
@@ -207,6 +209,14 @@ fun App(
                     is Screen.Game -> GameScreen(
                         botCount = s.botCount,
                         onBackToHome = { screen = Screen.Home },
+                        onOpenRules = { screen = Screen.Rules },
+                        onOpenSettings = { screen = Screen.Settings },
+                    )
+                    Screen.Rules -> com.vivek.unosimple.ui.rules.RulesScreen(
+                        onBack = { screen = Screen.Home },
+                    )
+                    Screen.About -> com.vivek.unosimple.ui.about.AboutScreen(
+                        onBack = { screen = Screen.Settings },
                     )
                     is Screen.Hotseat -> {
                         val vm = remember(s.seats) { HotseatGameViewModel(seats = s.seats) }

@@ -37,6 +37,8 @@ import kotlin.math.roundToInt
 fun SettingsScreen(
     settings: SettingsRepository,
     onOpenProfile: () -> Unit = {},
+    onOpenRules: () -> Unit = {},
+    onOpenAbout: () -> Unit = {},
     onDone: () -> Unit,
 ) {
     val current by settings.state.collectAsState()
@@ -120,25 +122,15 @@ fun SettingsScreen(
             Spacer(Modifier.height(16.dp))
 
             SettingsGroup(title = "ACCOUNT") {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable(onClick = onOpenProfile)
-                        .padding(vertical = 10.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Text(
-                        "Profile",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.onBackground,
-                    )
-                    Text(
-                        "Edit \u203A",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.primary,
-                    )
-                }
+                LinkRow(label = "Profile", chevronText = "Edit \u203A", onClick = onOpenProfile)
+            }
+
+            Spacer(Modifier.height(16.dp))
+
+            SettingsGroup(title = "INFO") {
+                LinkRow(label = "How to play", chevronText = "Rules \u203A", onClick = onOpenRules)
+                Divider()
+                LinkRow(label = "About", chevronText = "v${com.vivek.unosimple.BuildInfo.BUILD_STAMP} \u203A", onClick = onOpenAbout)
             }
 
             Spacer(Modifier.weight(1f))
@@ -223,6 +215,34 @@ private fun Divider() {
         color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f),
         thickness = 1.dp,
     )
+}
+
+/**
+ * Tappable row with a label on the left and a small chevron / hint on the
+ * right. Used for Profile + How-to-play + About in the settings list.
+ */
+@Composable
+private fun LinkRow(label: String, chevronText: String, onClick: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(vertical = 10.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            label,
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.onBackground,
+        )
+        Text(
+            chevronText,
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.primary,
+            fontWeight = FontWeight.Bold,
+        )
+    }
 }
 
 private fun formatSpeed(multiplier: Float): String {

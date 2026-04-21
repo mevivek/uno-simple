@@ -268,28 +268,58 @@ private fun SkipGlyph(color: Color, sizeDp: Dp) {
     }
 }
 
+/**
+ * Reverse glyph — two offset diagonal arrows pointing in opposite ways,
+ * echoing the Mattel Reverse card. Top arrow goes from lower-left to
+ * upper-right with arrowhead at the top; bottom arrow mirrors it.
+ */
 @Composable
 private fun ReverseGlyph(color: Color, sizeDp: Dp) {
     Canvas(modifier = Modifier.size(sizeDp)) {
-        val stroke = size.minDimension * 0.12f
+        val s = size.minDimension
+        val stroke = s * 0.12f
+        val head = s * 0.16f
         val cx = size.width / 2f
         val cy = size.height / 2f
-        val r = size.minDimension / 2f - stroke
-        val topPath = Path().apply {
-            moveTo(cx - r, cy)
-            quadraticTo(cx, cy - r * 1.4f, cx + r, cy)
-        }
-        drawPath(topPath, color = color, style = Stroke(width = stroke, cap = StrokeCap.Round))
-        val head = r * 0.4f
-        drawLine(color, Offset(cx + r, cy), Offset(cx + r - head, cy - head * 0.8f), strokeWidth = stroke, cap = StrokeCap.Round)
-        drawLine(color, Offset(cx + r, cy), Offset(cx + r - head, cy + head * 0.8f), strokeWidth = stroke, cap = StrokeCap.Round)
-        val bottomPath = Path().apply {
-            moveTo(cx + r, cy + stroke * 1.2f)
-            quadraticTo(cx, cy + r * 1.4f + stroke * 1.2f, cx - r, cy + stroke * 1.2f)
-        }
-        drawPath(bottomPath, color = color, style = Stroke(width = stroke, cap = StrokeCap.Round))
-        drawLine(color, Offset(cx - r, cy + stroke * 1.2f), Offset(cx - r + head, cy + stroke * 1.2f - head * 0.8f), strokeWidth = stroke, cap = StrokeCap.Round)
-        drawLine(color, Offset(cx - r, cy + stroke * 1.2f), Offset(cx - r + head, cy + stroke * 1.2f + head * 0.8f), strokeWidth = stroke, cap = StrokeCap.Round)
+        // Geometry: each arrow is a short diagonal line. The two arrows are
+        // parallel to each other but reversed in direction, laid slightly
+        // apart like the Mattel symbol.
+        // Offset perpendicular to the arrow axis so they sit side-by-side.
+        val arrowLen = s * 0.42f
+        val halfLen = arrowLen
+        // Arrow A: from lower-left to upper-right (tip at top-right).
+        val aStart = Offset(cx - halfLen * 0.85f, cy + halfLen * 0.25f)
+        val aEnd = Offset(cx + halfLen * 0.25f, cy - halfLen * 0.85f)
+        drawLine(color, aStart, aEnd, strokeWidth = stroke, cap = StrokeCap.Round)
+        // Arrowhead at aEnd pointing along direction (aEnd - aStart).
+        val aDirX = (aEnd.x - aStart.x)
+        val aDirY = (aEnd.y - aStart.y)
+        val aLen = kotlin.math.sqrt(aDirX * aDirX + aDirY * aDirY)
+        val aUx = aDirX / aLen
+        val aUy = aDirY / aLen
+        // Perpendicular, for the "V" of the arrowhead.
+        val aPx = -aUy
+        val aPy = aUx
+        val aBaseX = aEnd.x - head * aUx
+        val aBaseY = aEnd.y - head * aUy
+        drawLine(color, aEnd, Offset(aBaseX + head * 0.6f * aPx, aBaseY + head * 0.6f * aPy), strokeWidth = stroke, cap = StrokeCap.Round)
+        drawLine(color, aEnd, Offset(aBaseX - head * 0.6f * aPx, aBaseY - head * 0.6f * aPy), strokeWidth = stroke, cap = StrokeCap.Round)
+
+        // Arrow B: from upper-right to lower-left (tip at bottom-left).
+        val bStart = Offset(cx + halfLen * 0.85f, cy - halfLen * 0.25f)
+        val bEnd = Offset(cx - halfLen * 0.25f, cy + halfLen * 0.85f)
+        drawLine(color, bStart, bEnd, strokeWidth = stroke, cap = StrokeCap.Round)
+        val bDirX = (bEnd.x - bStart.x)
+        val bDirY = (bEnd.y - bStart.y)
+        val bLen = kotlin.math.sqrt(bDirX * bDirX + bDirY * bDirY)
+        val bUx = bDirX / bLen
+        val bUy = bDirY / bLen
+        val bPx = -bUy
+        val bPy = bUx
+        val bBaseX = bEnd.x - head * bUx
+        val bBaseY = bEnd.y - head * bUy
+        drawLine(color, bEnd, Offset(bBaseX + head * 0.6f * bPx, bBaseY + head * 0.6f * bPy), strokeWidth = stroke, cap = StrokeCap.Round)
+        drawLine(color, bEnd, Offset(bBaseX - head * 0.6f * bPx, bBaseY - head * 0.6f * bPy), strokeWidth = stroke, cap = StrokeCap.Round)
     }
 }
 

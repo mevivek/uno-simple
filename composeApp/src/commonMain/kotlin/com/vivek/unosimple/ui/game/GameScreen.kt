@@ -103,6 +103,8 @@ import kotlin.math.PI
 fun GameScreen(
     botCount: Int,
     onBackToHome: () -> Unit,
+    onOpenRules: () -> Unit = {},
+    onOpenSettings: () -> Unit = {},
     // The default factory on non-Android targets can't instantiate our
     // ViewModel (UnsupportedOperationException) — provide an explicit
     // factory so lifecycle-viewmodel-compose works on Wasm / Desktop. Tests
@@ -143,6 +145,7 @@ fun GameScreen(
     val audio = LocalAudio.current
     val flash = rememberFlashController()
     val scope = rememberCoroutineScope()
+    var pauseOpen by remember { mutableStateOf(false) }
 
     // Watch for opponent plays: whenever the discard size grows and the
     // player who just moved wasn't the human, fire a flight from that
@@ -249,8 +252,10 @@ fun GameScreen(
                     state = s,
                     humanId = humanId,
                     onBackToHome = {
-                        vm.clear()
-                        onBackToHome()
+                        // Menu tap opens pause overlay rather than quitting
+                        // straight. Quit is a button inside the overlay.
+                        vm.pause()
+                        pauseOpen = true
                     },
                 )
                 Spacer(Modifier.height(16.dp))
@@ -308,6 +313,28 @@ fun GameScreen(
         RoundOverPodium(state = s, onNewRound = { vm.startGame(botCount) })
         CardFlightOverlay(controller = flight)
         FlashOverlay(controller = flash)
+
+        if (pauseOpen) {
+            PauseOverlay(
+                onResume = {
+                    pauseOpen = false
+                    vm.resume()
+                },
+                onOpenRules = {
+                    // Pause stays active while viewing rules; resume happens
+                    // when the user lands back on the game and taps Resume.
+                    onOpenRules()
+                },
+                onOpenSettings = {
+                    onOpenSettings()
+                },
+                onQuit = {
+                    vm.clear()
+                    pauseOpen = false
+                    onBackToHome()
+                },
+            )
+        }
 
         // Floating CALL UNO disc anchored bottom-right, above every game
         // layer. Only actionable while the human has exactly 2 cards on

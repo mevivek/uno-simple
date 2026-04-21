@@ -170,6 +170,25 @@ class GameViewModel(
         SessionStore.write(SESSION_KEY, null)
     }
 
+    /** True while the game surface is paused and bots should not advance. */
+    private val _paused = MutableStateFlow(false)
+    val paused: StateFlow<Boolean> = _paused.asStateFlow()
+
+    /** Pause bot advancement. The human can still look at the screen but no
+     *  further turns fire until [resume] is called. */
+    fun pause() {
+        if (_paused.value) return
+        _paused.value = true
+        botJob?.cancel()
+    }
+
+    /** Resume bot advancement. Picks back up from the current state. */
+    fun resume() {
+        if (!_paused.value) return
+        _paused.value = false
+        runBotsUntilHuman()
+    }
+
     // ------------------------------------------------------------------
     // Internals
     // ------------------------------------------------------------------

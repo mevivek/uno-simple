@@ -65,7 +65,12 @@ class AppNavigationTest {
         waitForIdle()
         onNodeWithTag(TestTags.GAME_SCREEN).assertIsDisplayed()
 
+        // Menu button now opens the pause overlay. Tap Quit inside the
+        // overlay to return to home.
         onNodeWithTag(TestTags.GAME_MENU_BUTTON).performClick()
+        waitForIdle()
+        onNodeWithTag("pause_overlay").assertIsDisplayed()
+        onNodeWithTag("pause.quit").performClick()
         waitForIdle()
         onNodeWithTag(TestTags.HOME_SCREEN).assertIsDisplayed()
     }

@@ -19,80 +19,83 @@ import kotlin.math.cos
 import kotlin.math.sin
 
 /**
- * Big curved amber direction arrow wrapping the discard pile — lifted from
- * the reference mobile UNO app. Sits in the middle of the felt, low-alpha
- * enough to read as table art but obvious enough that players never
- * forget which way the turn is moving.
+ * Giant curved direction arrow — a single ~260° arc wrapping the discard
+ * pile, with a chunky arrowhead at the leading end indicating which way
+ * play is moving. Sits on the red felt at low alpha so it reads as table
+ * decoration, not live UI. Lifted from the reference mobile UNO app's
+ * center arrow.
  *
- * Two arc segments (top + bottom) with an arrowhead at the leading end
- * based on [direction]. Scales with the parent container — draws around a
- * notional center card roughly 200dp wide.
+ * The arrow is drawn in CANVAS coordinates, where y grows DOWN. "Clockwise"
+ * in gameplay terms (the natural UNO play order) corresponds to the
+ * positive angular sweep direction on the canvas, so we sweep positive
+ * angles for CLOCKWISE and negative for COUNTER_CLOCKWISE.
  */
 @Composable
 internal fun BigTableDirectionArrow(direction: PlayDirection) {
     val arrowColor = Color(0xFFFFB53B).copy(alpha = 0.55f) // amber @ ~55%
+    val isClockwise = direction == PlayDirection.CLOCKWISE
 
-    Box(
-        modifier = Modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center,
-    ) {
+    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         Canvas(modifier = Modifier.fillMaxSize()) {
             val cx = size.width / 2f
             val cy = size.height / 2f
-            val r = 140.dp.toPx()
-            val stroke = 14.dp.toPx()
-            val isClockwise = direction == PlayDirection.CLOCKWISE
+            val r = 150.dp.toPx()
+            val stroke = 16.dp.toPx()
 
-            // Two half-arcs, one on top, one on bottom — a gap at the left
-            // and right of the center so the discard + draw piles aren't
-            // covered by the arrow stroke.
-            // Top arc: sweeps from 220° to 320° (via 270°) covering the top half.
-            // Bottom arc: 40° to 140° covering the bottom half.
+            // One single arc with a gap at the bottom (where the draw/discard
+            // row sits). Sweeps 260° around; arrowhead sits at the leading
+            // end of that sweep.
+            //
+            // Clockwise: start at angle -150° (upper-left-ish), sweep +260°
+            // ending at 110° (lower-left).
+            // Counter-clockwise: mirror — start at -30° (upper-right),
+            // sweep -260° ending at 70° (lower-right).
+            val startDeg = if (isClockwise) -150f else -30f
+            val sweepDeg = if (isClockwise) 260f else -260f
+
             drawArc(
                 color = arrowColor,
-                startAngle = 220f,
-                sweepAngle = 100f,
-                useCenter = false,
-                topLeft = Offset(cx - r, cy - r),
-                size = Size(r * 2, r * 2),
-                style = Stroke(width = stroke, cap = StrokeCap.Round),
-            )
-            drawArc(
-                color = arrowColor,
-                startAngle = 40f,
-                sweepAngle = 100f,
+                startAngle = startDeg,
+                sweepAngle = sweepDeg,
                 useCenter = false,
                 topLeft = Offset(cx - r, cy - r),
                 size = Size(r * 2, r * 2),
                 style = Stroke(width = stroke, cap = StrokeCap.Round),
             )
 
-            // Arrowhead at the "leading" end of the top arc — right-side
-            // for clockwise, left-side for counter-clockwise.
-            val tipAngleDeg = if (isClockwise) 320f else 220f
-            val tipRad = tipAngleDeg * PI.toFloat() / 180f
+            // Arrowhead — a solid triangle tangent to the circle at the
+            // leading end.
+            val tipDeg = startDeg + sweepDeg
+            val tipRad = tipDeg * PI.toFloat() / 180f
             val tipX = cx + r * cos(tipRad)
             val tipY = cy + r * sin(tipRad)
-            val headLen = stroke * 2.2f
-            // Tangent direction (clockwise goes counter-clockwise angles, so
-            // we back off in the opposite direction relative to the sweep).
-            val tangentDeg = if (isClockwise) tipAngleDeg + 90f else tipAngleDeg - 90f
-            val tangentRad = tangentDeg * PI.toFloat() / 180f
-            val baseX = tipX - headLen * cos(tangentRad)
-            val baseY = tipY - headLen * sin(tangentRad)
-            val perpDeg = tangentDeg + 90f
-            val perpRad = perpDeg * PI.toFloat() / 180f
-            val side = headLen * 0.55f
-            val offsX = side * cos(perpRad)
-            val offsY = side * sin(perpRad)
 
-            val arrowHead = Path().apply {
-                moveTo(tipX, tipY)
-                lineTo(baseX + offsX, baseY + offsY)
-                lineTo(baseX - offsX, baseY - offsY)
+            // Tangent direction (in the direction of motion). For positive
+            // sweep (CW), tangent is the +90° rotation of the radial
+            // vector; for negative sweep (CCW), -90°.
+            val tangentOffsetDeg = if (isClockwise) 90f else -90f
+            val tangRad = (tipDeg + tangentOffsetDeg) * PI.toFloat() / 180f
+            val tUx = cos(tangRad)
+            val tUy = sin(tangRad)
+            // Perpendicular to the tangent — used to splay the arrowhead.
+            val pUx = -tUy
+            val pUy = tUx
+
+            val headLen = stroke * 2.4f
+            val halfBase = stroke * 1.4f
+
+            val p1 = Offset(tipX + tUx * headLen * 0.6f, tipY + tUy * headLen * 0.6f)
+            val baseCenter = Offset(tipX - tUx * headLen * 0.4f, tipY - tUy * headLen * 0.4f)
+            val p2 = Offset(baseCenter.x + pUx * halfBase, baseCenter.y + pUy * halfBase)
+            val p3 = Offset(baseCenter.x - pUx * halfBase, baseCenter.y - pUy * halfBase)
+
+            val head = Path().apply {
+                moveTo(p1.x, p1.y)
+                lineTo(p2.x, p2.y)
+                lineTo(p3.x, p3.y)
                 close()
             }
-            drawPath(arrowHead, color = arrowColor)
+            drawPath(head, color = arrowColor)
         }
     }
 }

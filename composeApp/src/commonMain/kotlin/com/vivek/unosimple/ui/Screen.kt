@@ -12,6 +12,8 @@ sealed interface Screen {
     data object Settings : Screen
     data object Profile : Screen
     data object AvatarPicker : Screen
+    data object Rules : Screen
+    data object About : Screen
     data object Lobby : Screen
     data object OnlineLobby : Screen
 
