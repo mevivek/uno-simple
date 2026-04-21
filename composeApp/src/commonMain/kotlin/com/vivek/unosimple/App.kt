@@ -318,7 +318,11 @@ fun App(
                             // host taps "Start round" in the waiting room.
                             LaunchedEffect(sync, s.displayName) {
                                 sync.joinSeat(
-                                    PlayerSeat(id = sync.myId, displayName = s.displayName)
+                                    PlayerSeat(
+                                        id = sync.myId,
+                                        displayName = s.displayName,
+                                        avatarId = profile.profile.value.avatarId,
+                                    )
                                 )
                             }
                             OnlineGameScreen(

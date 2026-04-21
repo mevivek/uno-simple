@@ -98,7 +98,15 @@ interface GameSyncService {
 data class EmoteEvent(val senderId: String, val reaction: String)
 
 @kotlinx.serialization.Serializable
-data class PlayerSeat(val id: String, val displayName: String)
+data class PlayerSeat(
+    val id: String,
+    val displayName: String,
+    /** Optional persona avatar id (e.g. "bot3"). Mirrored into
+     *  `users/{id}` so peers can render the right face without every
+     *  client having to store a profile-lookup table. Null = fall back
+     *  to the initial-on-disc avatar. */
+    val avatarId: String? = null,
+)
 
 /** Connection health for the badge on the online game surface. */
 enum class ConnectionState { Connected, Reconnecting, Offline }

@@ -155,6 +155,12 @@ class WasmFirebaseSyncService(
             seatsRefPath,
             json.encodeToString(ListSerializer(PlayerSeat.serializer()), next),
         )
+        // Mirror the joining user to /users/{id}/... so the Firebase
+        // console tree shows each field separately instead of one opaque
+        // JSON string. Three simple sub-paths keep the glue layer trivial
+        // (everything unoDbSet takes is just a string).
+        unoDbSet("users/${seat.id}/displayName", seat.displayName)
+        seat.avatarId?.let { unoDbSet("users/${seat.id}/avatarId", it) }
     }
 
     override suspend fun startRound(seats: List<PlayerSeat>, handSize: Int) {

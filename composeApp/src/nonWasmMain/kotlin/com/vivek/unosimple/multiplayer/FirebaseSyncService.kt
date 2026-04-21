@@ -141,7 +141,16 @@ class FirebaseSyncService(
             existing + seat
         }
         seatsRef.setValue(next)
+        // Mirror to /users/{id} so the Firebase console has a users view.
+        database.reference("users/${seat.id}")
+            .setValue(UserProfilePayload(displayName = seat.displayName, avatarId = seat.avatarId))
     }
+
+    @kotlinx.serialization.Serializable
+    private data class UserProfilePayload(
+        val displayName: String,
+        val avatarId: String? = null,
+    )
 
     override suspend fun startRound(seats: List<PlayerSeat>, handSize: Int) {
         seatsRef.setValue(seats)
