@@ -43,6 +43,7 @@ import com.vivek.unosimple.engine.models.isWild
 import com.vivek.unosimple.multiplayer.GameSyncService
 import com.vivek.unosimple.multiplayer.PlayerSeat
 import com.vivek.unosimple.viewmodel.OnlineGameViewModel
+import com.vivek.unosimple.ui.theme.noiseBackground
 import kotlinx.coroutines.launch
 
 /**
@@ -90,6 +91,74 @@ fun OnlineGameScreen(
         var unoDeclared: Boolean by remember { mutableStateOf(false) }
 
         val visibleHumanId = vm.myId
+        val audio = com.vivek.unosimple.audio.LocalAudio.current
+        val flight = remember { CardFlightController() }
+        val flash = com.vivek.unosimple.ui.theme.rememberFlashController()
+
+        // Watch for opponent plays + action-card hits (same logic as solo).
+        var lastDiscardSize by remember { mutableStateOf<Int?>(null) }
+        var lastActorId by remember { mutableStateOf<String?>(null) }
+        LaunchedEffect(s.discardPile.size) {
+            val size = s.discardPile.size
+            val prevSize = lastDiscardSize
+            val prevActor = lastActorId
+            lastDiscardSize = size
+            lastActorId = s.currentPlayer.id
+            if (prevSize != null && size > prevSize && prevActor != null && prevActor != visibleHumanId) {
+                flight.flyFromOpponent(prevActor, s.topDiscard)
+                audio.play(com.vivek.unosimple.audio.SoundEffect.CARD_PLAY)
+            }
+            if (prevSize != null && size > prevSize) {
+                val top = s.topDiscard
+                when (top) {
+                    is com.vivek.unosimple.engine.models.WildDrawFourCard -> {
+                        scope.launch { flash.flash(androidx.compose.ui.graphics.Color.White, 0.8f, 280) }
+                        audio.play(com.vivek.unosimple.audio.SoundEffect.ERROR)
+                    }
+                    is com.vivek.unosimple.engine.models.DrawTwoCard -> {
+                        scope.launch { flash.flash(androidx.compose.ui.graphics.Color(0xFFFF5168), 0.35f, 320) }
+                    }
+                    else -> Unit
+                }
+            }
+        }
+
+        var lastRoundOver by remember { mutableStateOf(false) }
+        LaunchedEffect(s.isRoundOver) {
+            val now = s.isRoundOver
+            if (now && !lastRoundOver) audio.play(com.vivek.unosimple.audio.SoundEffect.WIN)
+            lastRoundOver = now
+        }
+
+        androidx.compose.runtime.CompositionLocalProvider(LocalCardFlight provides flight) {
+        // Red UNO felt — same gradient + noise texture as solo GameScreen.
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(
+                    androidx.compose.ui.graphics.Brush.radialGradient(
+                        0f to androidx.compose.ui.graphics.Color(0xFFF37A45),
+                        0.35f to androidx.compose.ui.graphics.Color(0xFFD7301C),
+                        1f to androidx.compose.ui.graphics.Color(0xFF7A0F0A),
+                        radius = 1200f,
+                    )
+                )
+                .noiseBackground(
+                    base = androidx.compose.ui.graphics.Color.Transparent,
+                    speckleColor = androidx.compose.ui.graphics.Color.White.copy(alpha = 0.03f),
+                    density = 0.35f,
+                ),
+        ) {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Text(
+                    text = "UNO",
+                    style = MaterialTheme.typography.displayLarge,
+                    color = androidx.compose.ui.graphics.Color(0x22FFFFFF),
+                    fontWeight = FontWeight.Black,
+                    fontSize = androidx.compose.ui.unit.TextUnit(140f, androidx.compose.ui.unit.TextUnitType.Sp),
+                )
+            }
+            BigTableDirectionArrow(direction = s.direction)
 
         Column(
             modifier = Modifier.fillMaxSize().padding(16.dp),
@@ -104,7 +173,10 @@ fun OnlineGameScreen(
             TableCenter(
                 state = s,
                 isHumanTurn = s.currentPlayer.id == visibleHumanId,
-                onDraw = { vm.drawCard() },
+                onDraw = {
+                    audio.play(com.vivek.unosimple.audio.SoundEffect.CARD_DEAL)
+                    vm.drawCard()
+                },
             )
 
             HumanHand(
@@ -116,6 +188,8 @@ fun OnlineGameScreen(
                     if (card.isWild) {
                         pendingWild = card
                     } else {
+                        flight.flyFromHand(card)
+                        audio.play(com.vivek.unosimple.audio.SoundEffect.CARD_PLAY)
                         vm.playCard(card, chosenColor = null, declareUno = unoDeclared)
                         unoDeclared = false
                     }
@@ -172,6 +246,32 @@ fun OnlineGameScreen(
         }
 
         CelebrationOverlay(visible = s.isRoundOver)
+
+        // Card-flight + flash overlays layered over the felt.
+        CardFlightOverlay(controller = flight)
+        com.vivek.unosimple.ui.theme.FlashOverlay(controller = flash)
+
+        // CALL UNO disc — same logic as solo.
+        val canDeclareUno = s.currentPlayer.id == visibleHumanId &&
+            s.players.find { it.id == visibleHumanId }?.handSize == 2 &&
+            !s.isRoundOver
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(end = 18.dp, bottom = 130.dp),
+            contentAlignment = Alignment.BottomEnd,
+        ) {
+            CallUnoDisc(
+                visible = canDeclareUno,
+                declared = unoDeclared,
+                onTap = {
+                    unoDeclared = true
+                    audio.play(com.vivek.unosimple.audio.SoundEffect.UNO_CALL)
+                },
+            )
+        }
+        } // close red-felt Box
+        } // close CompositionLocalProvider(LocalCardFlight)
     }
 }
 
