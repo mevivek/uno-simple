@@ -1,5 +1,11 @@
 package com.vivek.unosimple.ui.game
 
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -12,6 +18,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
@@ -55,6 +62,7 @@ fun OnlineGameScreen(
 ) {
     val state by vm.state.collectAsState()
     val players by vm.sync.players.collectAsState()
+    val connectionState by vm.sync.connectionState.collectAsState()
 
     Surface(
         modifier = Modifier.fillMaxSize(),
@@ -70,6 +78,8 @@ fun OnlineGameScreen(
                 isHost = isHost,
                 onStart = { vm.startRound(players, handSize = 7) },
                 onBackToHome = onBackToHome,
+                connectionState = connectionState,
+                myId = vm.myId,
             )
             return@Surface
         }
@@ -120,6 +130,15 @@ fun OnlineGameScreen(
             onNewRound = { if (isHost) vm.startRound(players, handSize = 7) },
         )
 
+        // Connection badge overlay — top-right corner, always visible so
+        // a mid-game drop is obvious.
+        Box(
+            modifier = Modifier.fillMaxSize().padding(top = 10.dp, end = 10.dp),
+            contentAlignment = Alignment.TopEnd,
+        ) {
+            com.vivek.unosimple.ui.common.ConnectionBadge(state = connectionState)
+        }
+
         pendingWild?.let { card ->
             WildColorPickerDialog(
                 onCancel = { pendingWild = null },
@@ -137,8 +156,9 @@ fun OnlineGameScreen(
 
 /**
  * Waiting room shown before the host starts the first round. Displays the
- * room code (so others can join) and the seat list as it fills in. The
- * host sees a Start button; guests just watch.
+ * room code in big digit boxes, the seat list populating in real-time,
+ * and a context-aware CTA (host = Start round, guest = "waiting" pulse).
+ * A live connection badge in the top-right signals sync health.
  */
 @Composable
 private fun OnlineWaitingRoom(
@@ -147,6 +167,9 @@ private fun OnlineWaitingRoom(
     isHost: Boolean,
     onStart: () -> Unit,
     onBackToHome: () -> Unit,
+    connectionState: com.vivek.unosimple.multiplayer.ConnectionState =
+        com.vivek.unosimple.multiplayer.ConnectionState.Connected,
+    myId: String = "",
 ) {
     var copied by remember { mutableStateOf(false) }
     LaunchedEffect(copied) {
@@ -156,129 +179,182 @@ private fun OnlineWaitingRoom(
         }
     }
 
-    Column(
-        modifier = Modifier.fillMaxSize().padding(24.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center,
-    ) {
-        // Big tap-to-copy chip showing the room code + copy icon.
-        com.vivek.unosimple.ui.theme.ClaySurface(
-            color = MaterialTheme.colorScheme.primary,
-            cornerRadius = 24.dp,
-            elevation = 12.dp,
+    Box(modifier = Modifier.fillMaxSize()) {
+        Column(
+            modifier = Modifier.fillMaxSize().padding(horizontal = 24.dp).padding(top = 60.dp, bottom = 24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Top,
         ) {
-            Row(
-                modifier = Modifier
-                    .clickable {
-                        com.vivek.unosimple.platform.Clipboard.writeText(roomCode)
-                        copied = true
-                    }
-                    .padding(horizontal = 28.dp, vertical = 18.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text(
-                    roomCode,
-                    style = MaterialTheme.typography.displayLarge,
-                    fontWeight = FontWeight.Black,
-                    color = MaterialTheme.colorScheme.onPrimary,
-                )
-                Spacer(Modifier.width(16.dp))
-                com.vivek.unosimple.ui.common.CopyIcon(
-                    size = 24.dp,
-                    color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.85f),
-                )
-            }
-        }
-        Spacer(Modifier.height(10.dp))
-        Text(
-            if (copied) "Copied!" else "Tap to copy",
-            style = MaterialTheme.typography.labelMedium,
-            fontWeight = FontWeight.Bold,
-            color = if (copied) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-
-        Spacer(Modifier.height(32.dp))
-
-        // Seat list as avatar chips.
-        if (players.isEmpty()) {
             Text(
-                "Waiting for players…",
-                style = MaterialTheme.typography.bodyLarge,
+                "ROOM CODE",
+                style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
+                fontWeight = FontWeight.Black,
             )
-        } else {
-            @OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
-            androidx.compose.foundation.layout.FlowRow(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(10.dp, Alignment.CenterHorizontally),
-                verticalArrangement = Arrangement.spacedBy(10.dp),
+            Spacer(Modifier.height(10.dp))
+
+            // Big digit boxes — one per character in the room code. Click
+            // anywhere on the row to copy to clipboard.
+            Row(
+                modifier = Modifier.clickable {
+                    com.vivek.unosimple.platform.Clipboard.writeText(roomCode)
+                    copied = true
+                },
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                players.forEach { p ->
-                    SeatChip(seat = p)
+                roomCode.forEach { c ->
+                    CodeDigitBox(digit = c.toString())
                 }
             }
-        }
-
-        Spacer(Modifier.height(40.dp))
-
-        if (isHost) {
-            com.vivek.unosimple.ui.theme.ClayButton(
-                onClick = onStart,
-                enabled = players.size in 2..10,
-                color = MaterialTheme.colorScheme.primary,
-                contentColor = MaterialTheme.colorScheme.onPrimary,
-                contentPadding = PaddingValues(horizontal = 32.dp, vertical = 16.dp),
+            Spacer(Modifier.height(8.dp))
+            Row(
+                modifier = Modifier.clickable {
+                    com.vivek.unosimple.platform.Clipboard.writeText(roomCode)
+                    copied = true
+                },
+                verticalAlignment = Alignment.CenterVertically,
             ) {
+                com.vivek.unosimple.ui.common.CopyIcon(
+                    size = 14.dp,
+                    color = if (copied) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Spacer(Modifier.width(6.dp))
                 Text(
-                    "Start round",
-                    style = MaterialTheme.typography.titleMedium,
+                    if (copied) "COPIED!" else "TAP TO COPY",
+                    style = MaterialTheme.typography.labelMedium,
                     fontWeight = FontWeight.Black,
+                    color = if (copied) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-        } else {
+
+            Spacer(Modifier.height(32.dp))
+
+            // Seat-count header + seat list.
             Text(
-                "Waiting for host…",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
+                "${players.size} OF 4 SEATS FILLED",
+                style = MaterialTheme.typography.titleSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
+                fontWeight = FontWeight.Black,
             )
+            Spacer(Modifier.height(14.dp))
+            if (players.isEmpty()) {
+                Text(
+                    "Nobody here yet \u2014 share the code above.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            } else {
+                @OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
+                androidx.compose.foundation.layout.FlowRow(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp, Alignment.CenterHorizontally),
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    players.forEach { p -> SeatChip(seat = p, isMe = p.id == myId) }
+                }
+            }
+
+            Spacer(Modifier.height(40.dp))
+
+            if (isHost) {
+                val enoughPlayers = players.size >= 2
+                com.vivek.unosimple.ui.theme.ClayButton(
+                    onClick = onStart,
+                    enabled = enoughPlayers,
+                    color = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary,
+                    contentPadding = PaddingValues(horizontal = 40.dp, vertical = 18.dp),
+                ) {
+                    Text(
+                        if (enoughPlayers) "START ROUND" else "NEED 1 MORE PLAYER",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Black,
+                    )
+                }
+            } else {
+                // Pulsing "waiting for host" text so the guest knows the
+                // screen is live, not frozen.
+                val alpha by rememberInfiniteTransition(label = "guest-wait").animateFloat(
+                    initialValue = 0.55f,
+                    targetValue = 1f,
+                    animationSpec = androidx.compose.animation.core.infiniteRepeatable(
+                        animation = androidx.compose.animation.core.tween(
+                            durationMillis = 900,
+                            easing = androidx.compose.animation.core.FastOutSlowInEasing,
+                        ),
+                        repeatMode = androidx.compose.animation.core.RepeatMode.Reverse,
+                    ),
+                    label = "guest-wait-alpha",
+                )
+                Text(
+                    "WAITING FOR HOST\u2026",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Black,
+                    color = MaterialTheme.colorScheme.primary.copy(alpha = alpha),
+                )
+            }
+
+            Spacer(Modifier.height(20.dp))
+            com.vivek.unosimple.ui.theme.GhostButton(
+                onClick = onBackToHome,
+                contentPadding = PaddingValues(horizontal = 24.dp, vertical = 12.dp),
+            ) {
+                Text("LEAVE ROOM", style = MaterialTheme.typography.titleSmall)
+            }
         }
 
-        Spacer(Modifier.height(24.dp))
+        // Connection badge — top-right corner, always visible.
+        com.vivek.unosimple.ui.common.ConnectionBadge(
+            state = connectionState,
+            modifier = Modifier.align(Alignment.TopEnd).padding(16.dp),
+        )
+    }
+}
+
+/**
+ * A single big digit box (or character slot) in the room-code hero. Panel-
+ * styled with the code character centered; sized big enough to read across
+ * a room when someone is asking the host to share the code.
+ */
+@Composable
+private fun CodeDigitBox(digit: String) {
+    com.vivek.unosimple.ui.theme.ClaySurface(
+        color = MaterialTheme.colorScheme.primary,
+        cornerRadius = 14.dp,
+        elevation = 10.dp,
+    ) {
         Box(
-            modifier = Modifier
-                .clip(RoundedCornerShape(50))
-                .background(MaterialTheme.colorScheme.surfaceVariant)
-                .clickable(onClick = onBackToHome)
-                .padding(horizontal = 20.dp, vertical = 10.dp),
+            modifier = Modifier.size(width = 58.dp, height = 76.dp),
+            contentAlignment = Alignment.Center,
         ) {
-            Text("Leave", color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(
+                digit,
+                style = MaterialTheme.typography.displayLarge,
+                color = MaterialTheme.colorScheme.onPrimary,
+                fontWeight = FontWeight.Black,
+            )
         }
     }
 }
 
 @Composable
-private fun SeatChip(seat: com.vivek.unosimple.multiplayer.PlayerSeat) {
+private fun SeatChip(seat: com.vivek.unosimple.multiplayer.PlayerSeat, isMe: Boolean = false) {
     com.vivek.unosimple.ui.theme.ClaySurface(
-        color = MaterialTheme.colorScheme.surface,
+        color = if (isMe) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surface,
         cornerRadius = 20.dp,
-        elevation = 4.dp,
+        elevation = if (isMe) 8.dp else 4.dp,
     ) {
         Row(
             modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            com.vivek.unosimple.ui.game.PlayerAvatar(
-                id = seat.id,
-                name = seat.displayName,
-                size = 28.dp,
-            )
+            PlayerAvatar(id = seat.id, name = seat.displayName, size = 28.dp)
             Spacer(Modifier.width(8.dp))
             Text(
-                seat.displayName,
+                seat.displayName + if (isMe) " (YOU)" else "",
                 style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface,
+                fontWeight = FontWeight.Black,
+                color = if (isMe) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface,
             )
         }
     }

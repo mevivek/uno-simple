@@ -42,6 +42,10 @@ interface GameSyncService {
     /** Identifier the remote peer assigned this client — used to filter actions. */
     val myId: String
 
+    /** Observable connection health. UI renders a badge from this. */
+    val connectionState: StateFlow<ConnectionState>
+        get() = kotlinx.coroutines.flow.MutableStateFlow(ConnectionState.Connected)
+
     /**
      * Register [seat] in the room's seat list without dealing a round. Used
      * by the lobby flow — host creates the room and registers themselves;
@@ -73,6 +77,9 @@ interface GameSyncService {
 
 @kotlinx.serialization.Serializable
 data class PlayerSeat(val id: String, val displayName: String)
+
+/** Connection health for the badge on the online game surface. */
+enum class ConnectionState { Connected, Reconnecting, Offline }
 
 /** Outcome of a submit call — exposes engine-level failures to the UI. */
 sealed interface SubmitResult {
