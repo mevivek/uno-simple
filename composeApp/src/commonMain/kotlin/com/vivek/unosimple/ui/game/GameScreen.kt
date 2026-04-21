@@ -330,6 +330,15 @@ fun GameScreen(
                 },
             )
         }
+        // Emote corner — 😊 button bottom-left with a small palette + bubble.
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(start = 16.dp, bottom = 130.dp),
+            contentAlignment = Alignment.BottomStart,
+        ) {
+            EmoteCorner()
+        }
         } // close radial-felt Box
     }
     } // close CompositionLocalProvider
