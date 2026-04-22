@@ -30,6 +30,9 @@ import kotlin.random.Random
 @JsFun("(path, value) => window.unoDbSet(path, value)")
 private external fun unoDbSet(path: String, value: String)
 
+@JsFun("(path, value) => window.unoDbSetObject(path, value)")
+private external fun unoDbSetObject(path: String, jsonValue: String)
+
 @JsFun("(path, cb) => window.unoDbSubscribe(path, cb)")
 private external fun unoDbSubscribe(path: String, callback: (String) -> Unit): Int
 
@@ -166,7 +169,9 @@ class WasmFirebaseSyncService(
         } else {
             existing + seat
         }
-        unoDbSet(
+        // Write seats as a real Firebase object list (not a string blob) so
+        // the console tree shows nested displayName/avatarId fields.
+        unoDbSetObject(
             seatsRefPath,
             json.encodeToString(ListSerializer(PlayerSeat.serializer()), next),
         )

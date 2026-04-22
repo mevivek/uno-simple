@@ -162,6 +162,10 @@ fun App(
                         } else Screen.Splash
                     mutableStateOf<Screen>(initial)
                 }
+                // Online session auto-resume — if a page reload lands while
+                // the user was in an online room, read the stashed
+                // {displayName, roomCode, isHost} and route back in.
+                val onlineResume = remember { com.vivek.unosimple.persistence.OnlineSessionStore.read() }
                 // Back-stack — push on forward nav, pop on back. Keeps
                 // "back" context-correct (e.g. Settings → Rules → back
                 // returns to Settings, not Home) without hardcoding a
@@ -183,9 +187,15 @@ fun App(
                 when (val s = screen) {
                     Screen.Splash -> com.vivek.unosimple.ui.onboarding.SplashScreen(
                         onDone = {
-                            // After splash: saved game resumes straight to Game;
-                            // first-run goes to Onboarding; returning users go Home.
+                            // After splash: online-room resume first, then
+                            // saved solo round, then first-run onboarding,
+                            // then Home.
                             screen = when {
+                                onlineResume != null -> Screen.Online(
+                                    displayName = onlineResume.displayName,
+                                    roomCode = onlineResume.roomCode,
+                                    isHost = onlineResume.isHost,
+                                )
                                 GameViewModel.hasSavedSession() -> Screen.Game(botCount = 2)
                                 !profile.profile.value.hasSeenTutorial -> Screen.Onboarding
                                 else -> Screen.Home
@@ -240,11 +250,17 @@ fun App(
                         profileName = profile.profile.value.displayName,
                         onCreateRoom = { name, code ->
                             if (name != profile.profile.value.displayName) profile.setDisplayName(name)
+                            com.vivek.unosimple.persistence.OnlineSessionStore.write(
+                                com.vivek.unosimple.persistence.OnlineSessionInfo(name, code, true)
+                            )
                             backStack.clear()
                             screen = Screen.Online(displayName = name, roomCode = code, isHost = true)
                         },
                         onJoinRoom = { name, code ->
                             if (name != profile.profile.value.displayName) profile.setDisplayName(name)
+                            com.vivek.unosimple.persistence.OnlineSessionStore.write(
+                                com.vivek.unosimple.persistence.OnlineSessionInfo(name, code, false)
+                            )
                             backStack.clear()
                             screen = Screen.Online(displayName = name, roomCode = code, isHost = false)
                         },
@@ -330,6 +346,7 @@ fun App(
                                 isHost = s.isHost,
                                 roomCode = s.roomCode,
                                 onBackToHome = {
+                                    com.vivek.unosimple.persistence.OnlineSessionStore.clear()
                                     backStack.clear()
                                     screen = Screen.Home
                                 },

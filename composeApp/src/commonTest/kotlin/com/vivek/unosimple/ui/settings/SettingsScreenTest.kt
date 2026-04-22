@@ -10,6 +10,8 @@ import androidx.compose.ui.test.runComposeUiTest
 import com.vivek.unosimple.settings.Settings
 import com.vivek.unosimple.settings.SettingsRepository
 import com.vivek.unosimple.ui.TestTags
+import com.vivek.unosimple.persistence.SessionStore
+import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -17,6 +19,14 @@ import kotlin.test.assertTrue
 
 @OptIn(ExperimentalTestApi::class)
 class SettingsScreenTest {
+
+    @BeforeTest
+    fun clearPersistedSettings() {
+        // SettingsRepository now persists via SessionStore; clear the key
+        // before each test so tests observe fresh defaults independent of
+        // execution order.
+        SessionStore.write("uno.settings.v1", null)
+    }
 
     @Test
     fun rendersAllControls() = runComposeUiTest {

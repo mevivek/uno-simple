@@ -146,6 +146,7 @@ fun GameScreen(
     val flash = rememberFlashController()
     val scope = rememberCoroutineScope()
     var pauseOpen by remember { mutableStateOf(false) }
+    var previewCard: Card? by remember { mutableStateOf(null) }
 
     // Watch for opponent plays: whenever the discard size grows and the
     // player who just moved wasn't the human, fire a flight from that
@@ -291,6 +292,7 @@ fun GameScreen(
                         unoDeclared = false // consume the declaration
                     }
                 },
+                onCardLongPress = { previewCard = it },
                 onNewRound = { vm.startGame(botCount) },
             )
         }
@@ -322,6 +324,25 @@ fun GameScreen(
         )
         CardFlightOverlay(controller = flight)
         FlashOverlay(controller = flash)
+
+        // Long-press preview — tap anywhere to dismiss.
+        previewCard?.let { preview ->
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color(0x99000000))
+                    .clickable { previewCard = null },
+                contentAlignment = Alignment.Center,
+            ) {
+                CardView(
+                    card = preview,
+                    width = 160.dp,
+                    height = 240.dp,
+                    enabled = true,
+                    onClick = null,
+                )
+            }
+        }
 
         if (pauseOpen) {
             PauseOverlay(
@@ -1020,6 +1041,7 @@ internal fun HumanHand(
     onDeclareUno: () -> Unit,
     onCardTap: (Card) -> Unit,
     onNewRound: () -> Unit,
+    onCardLongPress: (Card) -> Unit = {},
 ) {
     val human = state.players.find { it.id == humanId } ?: return
     val isHumanTurn = state.currentPlayer.id == humanId
@@ -1137,10 +1159,16 @@ internal fun HumanHand(
                                     card = card,
                                     enabled = true,
                                     onClick = { onCardTap(card) },
+                                    onLongPress = { onCardLongPress(card) },
                                 )
                             }
                         } else {
-                            CardView(card = card, enabled = false, onClick = null)
+                            CardView(
+                                card = card,
+                                enabled = false,
+                                onClick = null,
+                                onLongPress = { onCardLongPress(card) },
+                            )
                         }
                     }
                 }

@@ -35,6 +35,18 @@ export function unoDbSet(path, jsonString) {
 }
 
 /**
+ * Write a JSON-object value at the given RTDB path. The Kotlin side passes
+ * the pre-encoded string; we parse + set so Firebase stores it as a nested
+ * object (browsable in the console, queryable) instead of one opaque
+ * string blob like unoDbSet produces.
+ */
+export function unoDbSetObject(path, jsonString) {
+    let parsed;
+    try { parsed = JSON.parse(jsonString); } catch (e) { parsed = jsonString; }
+    return set(ref(db, path), parsed);
+}
+
+/**
  * Subscribe to value changes at `path`. Each emission invokes `callback`
  * with a single string argument: the latest stored value, or the empty
  * string when the node is absent.
@@ -47,7 +59,17 @@ export function unoDbSubscribe(path, callback) {
         const v = snapshot.val();
         // Normalize null / missing values to empty string so Kotlin side
         // can pattern-match on `""` without NPE-ing through an `external`.
-        callback(v == null ? "" : String(v));
+        // Strings pass through as-is; objects / numbers / booleans are
+        // JSON.stringify'd so the Kotlin decoder gets a parseable blob
+        // regardless of whether the write went through unoDbSet (string)
+        // or unoDbSetObject (real nested value).
+        if (v == null) {
+            callback("");
+        } else if (typeof v === 'string') {
+            callback(v);
+        } else {
+            callback(JSON.stringify(v));
+        }
     };
     onValue(r, cb);
     const handle = nextHandle++;

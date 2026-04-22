@@ -1,9 +1,11 @@
 package com.vivek.unosimple.ui.game
 
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -59,6 +61,7 @@ import kotlin.math.sin
  * @param card the card to render; `null` renders a face-down card back.
  * @param enabled dims the card when false (used to signal illegal plays).
  */
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun CardView(
     card: Card?,
@@ -68,6 +71,10 @@ fun CardView(
     enabled: Boolean = true,
     testTag: String? = null,
     onClick: (() -> Unit)? = null,
+    /** Invoked on long-press (typically to show an enlarged preview).
+     *  Fires even for disabled / illegal cards so the player can study
+     *  every card in their hand before committing. */
+    onLongPress: (() -> Unit)? = null,
 ) {
     val faceUp = card != null
     val faceColor: Color = when {
@@ -77,7 +84,14 @@ fun CardView(
     }
 
     val outerShape = RoundedCornerShape(CORNER_RADIUS)
-    val clickModifier = if (onClick != null && enabled) Modifier.clickable(onClick = onClick) else Modifier
+    val clickModifier = when {
+        onLongPress != null -> Modifier.combinedClickable(
+            onClick = { if (enabled && onClick != null) onClick() },
+            onLongClick = onLongPress,
+        )
+        onClick != null && enabled -> Modifier.clickable(onClick = onClick)
+        else -> Modifier
+    }
     val tagModifier = if (testTag != null) Modifier.testTag(testTag) else Modifier
 
     Box(
