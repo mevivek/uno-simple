@@ -28,6 +28,8 @@ import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.vivek.unosimple.audio.LocalAudio
 import com.vivek.unosimple.audio.createAudioService
+import com.vivek.unosimple.haptics.LocalHaptics
+import com.vivek.unosimple.haptics.createHapticsService
 import com.vivek.unosimple.multiplayer.PlayerSeat
 import com.vivek.unosimple.multiplayer.createFirebaseSyncService
 import com.vivek.unosimple.multiplayer.firebaseSupported
@@ -130,6 +132,14 @@ fun App(
                 LaunchedEffect(settingsState.soundEnabled) {
                     audio.setMuted(!settingsState.soundEnabled)
                 }
+                // Haptics — scaffolding only today (NoHapticsService on every
+                // target). Android/iOS platform impls are the one-liner
+                // follow-up that lights this up automatically at every
+                // LocalHaptics.current.emit(...) call site.
+                val haptics = remember { createHapticsService() }
+                LaunchedEffect(settingsState.hapticsEnabled) {
+                    haptics.setEnabled(settingsState.hapticsEnabled)
+                }
                 // Profile (local UUID + display name), shared across online
                 // lobby + profile-edit screen. Survives reloads via localStorage.
                 val profile = remember { com.vivek.unosimple.profile.ProfileRepository() }
@@ -211,6 +221,7 @@ fun App(
                 CompositionLocalProvider(
                     com.vivek.unosimple.ui.theme.LocalReducedMotion provides settingsState.reducedMotion,
                     LocalAudio provides audio,
+                    LocalHaptics provides haptics,
                 ) {
                 com.vivek.unosimple.ui.adaptive.AdaptiveScreenContainer {
                 when (val s = screen) {

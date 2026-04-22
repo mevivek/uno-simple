@@ -143,6 +143,7 @@ fun GameScreen(
     val flight = remember { CardFlightController() }
 
     val audio = LocalAudio.current
+    val haptics = com.vivek.unosimple.haptics.LocalHaptics.current
     val flash = rememberFlashController()
     val scope = rememberCoroutineScope()
     var pauseOpen by remember { mutableStateOf(false) }
@@ -167,6 +168,7 @@ fun GameScreen(
             val topCard = s.topDiscard
             flight.flyFromOpponent(prevActor, topCard)
             audio.play(SoundEffect.CARD_PLAY)
+            haptics.emit(com.vivek.unosimple.haptics.HapticPattern.BUMP)
         }
         // Bolt-flash + error beep on ANY Wild+4 landing (the bomb play). A
         // +2 stack earns a lighter coral tinge; number/skip/reverse get no
@@ -177,9 +179,11 @@ fun GameScreen(
                 is WildDrawFourCard -> {
                     scope.launch { flash.flash(Color.White, peakAlpha = 0.8f, durationMs = 280) }
                     audio.play(SoundEffect.ERROR)
+                    haptics.emit(com.vivek.unosimple.haptics.HapticPattern.THUMP)
                 }
                 is DrawTwoCard -> {
                     scope.launch { flash.flash(Color(0xFFFF5168), peakAlpha = 0.35f, durationMs = 320) }
+                    haptics.emit(com.vivek.unosimple.haptics.HapticPattern.THUMP)
                 }
                 else -> Unit
             }
@@ -190,7 +194,10 @@ fun GameScreen(
     var lastRoundOver by remember { mutableStateOf(false) }
     LaunchedEffect(state?.isRoundOver) {
         val now = state?.isRoundOver == true
-        if (now && !lastRoundOver) audio.play(SoundEffect.WIN)
+        if (now && !lastRoundOver) {
+            audio.play(SoundEffect.WIN)
+            haptics.emit(com.vivek.unosimple.haptics.HapticPattern.CELEBRATE)
+        }
         lastRoundOver = now
     }
 
@@ -288,6 +295,7 @@ fun GameScreen(
                     } else {
                         flight.flyFromHand(card)
                         audio.play(SoundEffect.CARD_PLAY)
+                        haptics.emit(com.vivek.unosimple.haptics.HapticPattern.BUMP)
                         vm.playCard(card, declareUno = unoDeclared)
                         unoDeclared = false // consume the declaration
                     }
@@ -384,6 +392,7 @@ fun GameScreen(
                 onTap = {
                     unoDeclared = true
                     audio.play(SoundEffect.UNO_CALL)
+                    haptics.emit(com.vivek.unosimple.haptics.HapticPattern.TICK)
                 },
             )
         }
