@@ -140,6 +140,25 @@ fun App(
                 // Friends service is per-profile; re-create when the
                 // profile UID/name/avatar changes.
                 val profileState by profile.profile.collectAsState()
+                // Mirror the local profile into the Firebase users registry
+                // on every change — triggers once right after onboarding
+                // completes, and again on any Profile / AvatarPicker save.
+                // Only fires when the user has actually set their name
+                // (skips the initial "Player" placeholder).
+                LaunchedEffect(
+                    profileState.uid,
+                    profileState.displayName,
+                    profileState.avatarId,
+                    profileState.hasSeenTutorial,
+                ) {
+                    if (profileState.hasSeenTutorial && profileState.displayName.isNotBlank()) {
+                        com.vivek.unosimple.profile.writeUserProfileMirror(
+                            uid = profileState.uid,
+                            displayName = profileState.displayName,
+                            avatarId = profileState.avatarId,
+                        )
+                    }
+                }
                 val friendsService = remember(profileState.uid) {
                     com.vivek.unosimple.friends.createFriendsService(
                         myUid = profileState.uid,

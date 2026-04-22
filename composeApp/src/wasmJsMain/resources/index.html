@@ -21,8 +21,16 @@
         window.firebaseApp = initializeApp(firebaseConfig);
     </script>
     <script type="module">
-        import { unoDbSet, unoDbSubscribe, unoDbUnsubscribe } from './uno-db.js';
+        import {
+            unoDbSet,
+            unoDbSetObject,
+            unoDbDelete,
+            unoDbSubscribe,
+            unoDbUnsubscribe,
+        } from './uno-db.js';
         window.unoDbSet = unoDbSet;
+        window.unoDbSetObject = unoDbSetObject;
+        window.unoDbDelete = unoDbDelete;
         window.unoDbSubscribe = unoDbSubscribe;
         window.unoDbUnsubscribe = unoDbUnsubscribe;
     </script>
