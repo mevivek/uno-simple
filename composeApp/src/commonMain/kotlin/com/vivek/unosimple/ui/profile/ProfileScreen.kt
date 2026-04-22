@@ -54,6 +54,7 @@ fun ProfileScreen(
     onBack: () -> Unit,
     onPickAvatar: () -> Unit = {},
     onOpenStats: () -> Unit = {},
+    onOpenFriends: () -> Unit = {},
 ) {
     val current by profile.profile.collectAsState()
     var editing by remember { mutableStateOf(current.displayName) }
@@ -225,6 +226,34 @@ fun ProfileScreen(
                             style = MaterialTheme.typography.labelLarge,
                             fontWeight = FontWeight.Black,
                             color = MaterialTheme.colorScheme.onPrimary,
+                        )
+                    }
+                }
+
+                Spacer(Modifier.height(10.dp))
+
+                ClaySurface(
+                    modifier = Modifier.fillMaxWidth().clickable(onClick = onOpenFriends),
+                    color = MaterialTheme.colorScheme.secondary,
+                    cornerRadius = 14.dp,
+                    elevation = 8.dp,
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 14.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(
+                            "FRIENDS",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Black,
+                            color = MaterialTheme.colorScheme.onSecondary,
+                        )
+                        Text(
+                            "OPEN \u203A",
+                            style = MaterialTheme.typography.labelLarge,
+                            fontWeight = FontWeight.Black,
+                            color = MaterialTheme.colorScheme.onSecondary,
                         )
                     }
                 }

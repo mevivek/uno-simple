@@ -77,6 +77,15 @@ export function unoDbSubscribe(path, callback) {
     return handle;
 }
 
+/**
+ * Delete the node at `path`. Firebase has no distinct delete verb — set
+ * to null removes the entry. Wrapped so the Kotlin side has a clear
+ * "remove this" intent.
+ */
+export function unoDbDelete(path) {
+    return set(ref(db, path), null);
+}
+
 /** Detach a subscription created via `unoDbSubscribe`. */
 export function unoDbUnsubscribe(handle) {
     const cleanup = subscriptions.get(handle);

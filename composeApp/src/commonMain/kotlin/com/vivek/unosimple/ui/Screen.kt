@@ -16,6 +16,7 @@ sealed interface Screen {
     data object About : Screen
     data object Stats : Screen
     data object Achievements : Screen
+    data object Friends : Screen
     data object Admin : Screen
     data object Lobby : Screen
     data object OnlineLobby : Screen

@@ -137,6 +137,16 @@ fun App(
                 // writes into the same stores.
                 val history = remember { com.vivek.unosimple.persistence.HistoryRepository() }
                 val achievements = remember { com.vivek.unosimple.persistence.AchievementRepository() }
+                // Friends service is per-profile; re-create when the
+                // profile UID/name/avatar changes.
+                val profileState by profile.profile.collectAsState()
+                val friendsService = remember(profileState.uid) {
+                    com.vivek.unosimple.friends.createFriendsService(
+                        myUid = profileState.uid,
+                        myDisplayName = profileState.displayName,
+                        myAvatarId = profileState.avatarId,
+                    )
+                }
                 val gameVmFactory = remember(history, achievements) {
                     viewModelFactory {
                         initializer {
@@ -215,17 +225,14 @@ fun App(
                         profile = profile,
                         onBack = { goBack(Screen.Profile) },
                     )
-                    Screen.Home -> {
-                        val profileState by profile.profile.collectAsState()
-                        HomeScreen(
-                            onStartGame = { botCount -> pushTo(Screen.Game(botCount)) },
-                            onOpenSettings = { pushTo(Screen.Settings) },
-                            onOpenLobby = { pushTo(Screen.Lobby) },
-                            onOpenOnlineLobby = { pushTo(Screen.OnlineLobby) },
-                            firebaseAvailable = firebaseSupported,
-                            currentName = profileState.displayName,
-                        )
-                    }
+                    Screen.Home -> HomeScreen(
+                        onStartGame = { botCount -> pushTo(Screen.Game(botCount)) },
+                        onOpenSettings = { pushTo(Screen.Settings) },
+                        onOpenLobby = { pushTo(Screen.Lobby) },
+                        onOpenOnlineLobby = { pushTo(Screen.OnlineLobby) },
+                        firebaseAvailable = firebaseSupported,
+                        currentName = profileState.displayName,
+                    )
                     Screen.Settings -> SettingsScreen(
                         settings = settings,
                         onOpenProfile = { pushTo(Screen.Profile) },
@@ -238,6 +245,7 @@ fun App(
                         onBack = { goBack(Screen.Settings) },
                         onPickAvatar = { pushTo(Screen.AvatarPicker) },
                         onOpenStats = { pushTo(Screen.Stats) },
+                        onOpenFriends = { pushTo(Screen.Friends) },
                     )
                     Screen.Lobby -> LobbyScreen(
                         onStart = { seats ->
@@ -291,6 +299,11 @@ fun App(
                     Screen.Achievements -> com.vivek.unosimple.ui.stats.AchievementsScreen(
                         achievements = achievements,
                         onBack = { goBack(Screen.Stats) },
+                    )
+                    Screen.Friends -> com.vivek.unosimple.ui.friends.FriendsScreen(
+                        service = friendsService,
+                        myUid = profileState.uid,
+                        onBack = { goBack(Screen.Profile) },
                     )
                     Screen.Admin -> com.vivek.unosimple.ui.admin.AdminScreen(
                         profile = profile,
